@@ -61,7 +61,14 @@ internal static class ProxyGeneration
     private static readonly MethodInfo GetParameterNameTransformStateMethod = typeof(CodeGenHelpers).GetRuntimeMethod(nameof(CodeGenHelpers.GetParameterNameTransformState), [typeof(Func<string, string>), typeof(IReadOnlyList<string>)])!;
 
     private static readonly MethodInfo DisposeMethod = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)) ?? throw Assumes.NotReachable();
+    private static readonly MethodInfo DisposeAsyncMethod = typeof(System.IAsyncDisposable).GetMethod(nameof(System.IAsyncDisposable.DisposeAsync)) ?? throw Assumes.NotReachable();
     private static readonly MethodInfo IsDisposedPropertyGetter = typeof(IDisposableObservable).GetProperty(nameof(IDisposableObservable.IsDisposed))!.GetMethod ?? throw Assumes.NotReachable();
+    private static readonly MethodInfo TaskFromExceptionMethod = typeof(Task).GetRuntimeMethods().Single(
+        m => m is { Name: nameof(Task.FromException), IsGenericMethod: false }
+            && m.GetParameters() is [{ ParameterType: Type parameterType }]
+            && parameterType == typeof(Exception));
+
+    private static readonly ConstructorInfo ValueTaskFromTaskCtor = typeof(ValueTask).GetConstructor([typeof(Task)]) ?? throw Assumes.NotReachable();
 
     /// <summary>
     /// Gets a dynamically generated type that implements a given interface in terms of a <see cref="JsonRpc"/> instance.
@@ -100,7 +107,14 @@ internal static class ProxyGeneration
             // For ALC selection reasons, it's vital that the *user's* selected interfaces come *before* our own supporting interfaces.
             // If the order is incorrect, type resolution may fail or the wrong AssemblyLoadContext (ALC) may be selected,
             // leading to runtime errors or unexpected behavior when loading types or invoking methods.
-            Type[] proxyInterfaces = [.. rpcInterfaces.Select(i => i.Type), typeof(IJsonRpcClientProxy), typeof(IJsonRpcClientProxyInternal)];
+            Type[] proxyInterfaces =
+            [
+                .. rpcInterfaces.Select(i => i.Type)
+                    .Append(typeof(IJsonRpcClientProxy))
+                    .Append(typeof(IJsonRpcClientProxyInternal))
+                    .Append(typeof(System.IAsyncDisposable))
+                    .Distinct(),
+            ];
             ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
 
             TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
@@ -131,6 +145,7 @@ internal static class ProxyGeneration
             foreach (EventInfo evt in FindAllOnThisAndOtherInterfaces(contractInterfaces, i => i.DeclaredEvents))
             {
                 VerifySupported(evt.EventHandlerType!.Equals(typeof(EventHandler)) || (evt.EventHandlerType.GetTypeInfo().IsGenericType && evt.EventHandlerType.GetGenericTypeDefinition().Equals(typeof(EventHandler<>))), Resources.UnsupportedEventHandlerTypeOnClientProxyInterface, evt);
+                string rpcEventName = evt.GetCustomAttribute<JsonRpcEventAttribute>()?.Name ?? evt.Name;
 
                 // public event EventHandler EventName;
                 EventBuilder evtBuilder = proxyTypeBuilder.DefineEvent(evt.Name, evt.Attributes, evt.EventHandlerType);
@@ -166,13 +181,13 @@ internal static class ProxyGeneration
                     // rpc.AddLocalRpcMethod("EventName", new Action<EventArgs>(this.OnEventName));
                     il.Emit(OpCodes.Ldarg_1); // .ctor's rpc parameter
 
-                    // First argument to AddLocalRpcMethod is the method name.
-                    // Run it through the method name transform.
-                    // this.options.EventNameTransform.Invoke("clrOrAttributedMethodName")
+                    // First argument to AddLocalRpcMethod is the event's RPC method name.
+                    // Run it through the event name transform.
+                    // this.options.EventNameTransform.Invoke("clrOrAttributedEventName")
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldfld, optionsField);
                     il.EmitCall(OpCodes.Callvirt, EventNameTransformPropertyGetter, null);
-                    il.Emit(OpCodes.Ldstr, evt.Name);
+                    il.Emit(OpCodes.Ldstr, rpcEventName);
                     il.EmitCall(OpCodes.Callvirt, EventNameTransformInvoke, null);
 
                     il.Emit(OpCodes.Ldarg_0);
@@ -223,7 +238,8 @@ internal static class ProxyGeneration
                 il.Emit(OpCodes.Ret);
             }
 
-            ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, onDisposeField, disposedField);
+            MethodBuilder disposeMethod = ImplementDisposeMethod(proxyTypeBuilder, jsonRpcField, onDisposeField, disposedField);
+            ImplementDisposeAsyncMethod(proxyTypeBuilder, disposeMethod);
             ImplementIsDisposedProperty(proxyTypeBuilder, jsonRpcField, disposedField);
             ImplementIJsonRpcClientProxyInternal(proxyTypeBuilder, callingMethodField, calledMethodField, marshaledObjectHandleField);
 
@@ -282,7 +298,7 @@ internal static class ProxyGeneration
             IEnumerable<MethodInfo> notifyWithParameterObjectAsyncMethodInfos = typeof(JsonRpc).GetTypeInfo().DeclaredMethods.Where(m => m.Name == nameof(JsonRpc.NotifyWithParameterObjectAsync));
             MethodInfo notifyWithParameterObjectAsyncOfTaskMethodInfo = notifyWithParameterObjectAsyncMethodInfos.Single(m => !m.IsGenericMethod && m.GetParameters() is [_, { ParameterType.Name: nameof(Object) }, _]);
 
-            HashSet<MethodInfo> implementedMethods = new() { DisposeMethod };
+            HashSet<MethodInfo> implementedMethods = new() { DisposeMethod, DisposeAsyncMethod };
             foreach ((Type rpcInterface, int? rpcInterfaceCode) in rpcInterfaces)
             {
                 RpcTargetMetadata methodNameMap = RpcTargetMetadata.FromInterface(rpcInterface.GetTypeInfo());
@@ -689,7 +705,7 @@ internal static class ProxyGeneration
         il.MarkLabel(notDisposedLabel);
     }
 
-    private static void ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder onDisposeField, FieldBuilder disposedField)
+    private static MethodBuilder ImplementDisposeMethod(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder onDisposeField, FieldBuilder disposedField)
     {
         MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
             DisposeMethod.Name,
@@ -736,6 +752,41 @@ internal static class ProxyGeneration
         il.Emit(OpCodes.Ret);
 
         proxyTypeBuilder.DefineMethodOverride(methodBuilder, DisposeMethod);
+        return methodBuilder;
+    }
+
+    private static void ImplementDisposeAsyncMethod(TypeBuilder proxyTypeBuilder, MethodBuilder disposeMethod)
+    {
+        MethodBuilder methodBuilder = proxyTypeBuilder.DefineMethod(
+            $"{DisposeAsyncMethod.DeclaringType!.FullName}.{DisposeAsyncMethod.Name}",
+            MethodAttributes.Private | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual,
+            DisposeAsyncMethod.ReturnType,
+            Type.EmptyTypes);
+        ILGenerator il = methodBuilder.GetILGenerator();
+        LocalBuilder resultLocal = il.DeclareLocal(typeof(ValueTask));
+
+        il.BeginExceptionBlock();
+
+        // this.Dispose();
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Call, disposeMethod);
+
+        // result = default;
+        il.Emit(OpCodes.Ldloca_S, resultLocal);
+        il.Emit(OpCodes.Initobj, typeof(ValueTask));
+
+        il.BeginCatchBlock(typeof(Exception));
+
+        // result = new ValueTask(Task.FromException(exception));
+        il.Emit(OpCodes.Call, TaskFromExceptionMethod);
+        il.Emit(OpCodes.Newobj, ValueTaskFromTaskCtor);
+        il.Emit(OpCodes.Stloc, resultLocal);
+
+        il.EndExceptionBlock();
+        il.Emit(OpCodes.Ldloc, resultLocal);
+        il.Emit(OpCodes.Ret);
+
+        proxyTypeBuilder.DefineMethodOverride(methodBuilder, DisposeAsyncMethod);
     }
 
     private static void ImplementIsDisposedProperty(TypeBuilder proxyTypeBuilder, FieldBuilder jsonRpcField, FieldBuilder disposedField)
@@ -1191,6 +1242,7 @@ internal static class ProxyGeneration
         private class AsyncEnumeratorProxy : IAsyncEnumerator<T>
         {
             private readonly AsyncLazy<IAsyncEnumerator<T>> enumeratorLazy;
+            private bool enumeratorCreationFailureObserved;
 
             internal AsyncEnumeratorProxy(Task<IAsyncEnumerable<T>> enumerableTask, CancellationToken cancellationToken)
             {
@@ -1216,12 +1268,27 @@ internal static class ProxyGeneration
 
             public async ValueTask<bool> MoveNextAsync()
             {
-                IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                IAsyncEnumerator<T> enumerator;
+                try
+                {
+                    enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);
+                }
+                catch
+                {
+                    this.enumeratorCreationFailureObserved = true;
+                    throw;
+                }
+
                 return await enumerator.MoveNextAsync().ConfigureAwait(false);
             }
 
             public async ValueTask DisposeAsync()
             {
+                if (this.enumeratorCreationFailureObserved)
+                {
+                    return;
+                }
+
                 // Even if we haven't been asked for the iterator yet, the server has (or soon may), so we must acquire it
                 // and dispose of it so that we don't incur a memory leak on the server.
                 IAsyncEnumerator<T> enumerator = await this.enumeratorLazy.GetValueAsync().ConfigureAwait(false);

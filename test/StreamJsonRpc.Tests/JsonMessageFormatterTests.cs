@@ -50,6 +50,57 @@ public class JsonMessageFormatterTests : FormatterTestBase<JsonMessageFormatter>
     }
 
     [Fact]
+    public void ProtocolVersion10_SerializesRequest()
+    {
+        this.Formatter.ProtocolVersion = new Version(1, 0);
+
+        JToken json = this.Formatter.Serialize(new JsonRpcRequest { Method = "test", RequestId = new RequestId(1) });
+
+        Assert.Null(json["jsonrpc"]);
+        Assert.Equal(1, json.Value<long>("id"));
+    }
+
+    [Fact]
+    public void ProtocolVersion10_SerializesResult()
+    {
+        this.Formatter.ProtocolVersion = new Version(1, 0);
+
+        JToken json = this.Formatter.Serialize(new JsonRpcResult { RequestId = new RequestId(1), Result = "value" });
+
+        Assert.Null(json["jsonrpc"]);
+        Assert.Equal("value", json.Value<string>("result"));
+        Assert.Equal(JTokenType.Null, json["error"]?.Type);
+    }
+
+    [Fact]
+    public void ProtocolVersion10_SerializesError()
+    {
+        this.Formatter.ProtocolVersion = new Version(1, 0);
+
+        JToken json = this.Formatter.Serialize(new JsonRpcError
+        {
+            RequestId = new RequestId(1),
+            Error = new JsonRpcError.ErrorDetail { Code = JsonRpcErrorCode.InternalError, Message = "failure" },
+        });
+
+        Assert.Null(json["jsonrpc"]);
+        Assert.Equal(JTokenType.Null, json["result"]?.Type);
+        Assert.Equal("failure", json["error"]?.Value<string>("message"));
+    }
+
+    [Fact]
+    public void ProtocolVersion10_DeserializesNullIdAsNotification()
+    {
+        this.Formatter.ProtocolVersion = new Version(1, 0);
+        var json = JObject.Parse("""{"method":"test","params":[],"id":null}""");
+
+        var request = Assert.IsAssignableFrom<JsonRpcRequest>(this.Formatter.Deserialize(json));
+
+        Assert.Equal("1.0", request.Version);
+        Assert.True(request.IsNotification);
+    }
+
+    [Fact]
     public void EncodingProperty_UsedToFormat()
     {
         var msg = new JsonRpcRequest { Method = "a" };

@@ -186,6 +186,19 @@ public class JsonRpcContractAnalyzerTests
     }
 
     [Fact]
+    public async Task AmbiguousMethodOverloads_DifferOnlyByCancellationToken()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IMyRpc
+            {
+                Task ExecuteAsync();
+                Task ExecuteAsync(CancellationToken cancellationToken);
+            }
+            """);
+    }
+
+    [Fact]
     public async Task AmbiguousMethodOverloads_IgnoresNonRpcMethods()
     {
         await VerifyCS.VerifyAnalyzerAsync("""
@@ -196,6 +209,30 @@ public class JsonRpcContractAnalyzerTests
 
                 [JsonRpcIgnore]
                 Task ExecuteAsync(string value);
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_IgnoresDisposalInterfaceMethods()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [RpcMarshalable, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IFoo : IAsyncDisposable, IDisposable
+            {
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AmbiguousMethodOverloads_UserDefinedDisposalMethodsAreRpcMethods()
+    {
+        await VerifyCS.VerifyAnalyzerAsync("""
+            [JsonRpcContract, TypeShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+            public partial interface IFoo
+            {
+                void {|StreamJsonRpc0010:Dispose|}();
+                ValueTask {|StreamJsonRpc0010:DisposeAsync|}();
             }
             """);
     }

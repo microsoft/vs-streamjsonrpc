@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Microsoft.VisualStudio.Threading;
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
@@ -39,6 +40,53 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
         Assert.Equal(typeof(Server), this.serverRpc.LastTargetMethodDispatched?.TargetObjectType);
         Assert.Equal(typeof(Server).GetMethod(nameof(Server.TestMethodAsync)), this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
+    }
+
+    [Fact]
+    public async Task DispatchRequestPrefersEquivalentOverloadWithCancellationToken()
+    {
+        await this.clientRpc.InvokeAsync(nameof(Server.PreferCancelableAsync));
+
+        MethodInfo? expectedMethod = typeof(Server).GetMethod(nameof(Server.PreferCancelableAsync), [typeof(CancellationToken)]);
+        Assert.NotNull(expectedMethod);
+        Assert.Equal(expectedMethod, this.serverRpc.LastTargetMethodDispatched?.TargetMethodInfo);
+    }
+
+    [Fact]
+    public async Task CancellationPreferencePreservesTargetRegistrationOrder()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcTarget(new FirstTarget());
+        serverRpc.AddLocalRpcTarget(new SecondTarget());
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(FirstTarget.GetTargetAsync));
+
+        Assert.Equal("first", result);
+    }
+
+    [Fact]
+    public async Task RegisteringSameTargetTypeRetainsDistinctTargets()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        var firstTarget = new RepeatedTarget("first");
+        var secondTarget = new RepeatedTarget("second");
+        serverRpc.AddLocalRpcTarget(firstTarget, new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
+        serverRpc.AddLocalRpcTarget(secondTarget);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(RepeatedTarget.GetTargetAsync),
+            new { argument = "argument" },
+            this.TimeoutToken);
+
+        Assert.Equal("second", result);
     }
 
     [Fact]
@@ -90,6 +138,10 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
             return Task.CompletedTask;
         }
 
+        public Task PreferCancelableAsync() => Task.CompletedTask;
+
+        public Task PreferCancelableAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
         public Task<int> GetCallCountAsync()
         {
             int currentCount = Interlocked.Increment(ref this.callCounter);
@@ -100,6 +152,28 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         {
             throw new InvalidProgramException();
         }
+    }
+
+    public class FirstTarget
+    {
+        public Task<string> GetTargetAsync() => Task.FromResult("first");
+    }
+
+    public class SecondTarget
+    {
+        public Task<string> GetTargetAsync(CancellationToken cancellationToken) => Task.FromResult("second");
+    }
+
+    public class RepeatedTarget
+    {
+        private readonly string value;
+
+        public RepeatedTarget(string value)
+        {
+            this.value = value;
+        }
+
+        public Task<string> GetTargetAsync(string argument) => Task.FromResult(this.value);
     }
 
     public class DelegatedJsonRpc : JsonRpc

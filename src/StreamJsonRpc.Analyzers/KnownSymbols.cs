@@ -16,6 +16,7 @@ internal record KnownSymbols(
     INamedTypeSymbol? TypeShapeAttribute,
     INamedTypeSymbol CancellationToken,
     INamedTypeSymbol IDisposable,
+    INamedTypeSymbol? IAsyncDisposable,
     INamedTypeSymbol RpcMarshalableAttribute,
     INamedTypeSymbol RpcMarshalableOptionalInterface,
     INamedTypeSymbol JsonRpcContractAttribute,
@@ -25,6 +26,7 @@ internal record KnownSymbols(
     INamedTypeSymbol JsonRpcProxyMappingAttribute,
     INamedTypeSymbol? JsonRpcIgnoreAttribute,
     INamedTypeSymbol JsonRpcMethodAttribute,
+    INamedTypeSymbol JsonRpcEventAttribute,
     INamedTypeSymbol JsonRpcParameterAttribute,
     INamedTypeSymbol? MethodShapeAttribute,
     INamedTypeSymbol SystemType,
@@ -41,6 +43,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? typeShapeAttribute = compilation.GetTypeByMetadataName("PolyType.TypeShapeAttribute");
         INamedTypeSymbol? cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         INamedTypeSymbol? idisposable = compilation.GetTypeByMetadataName("System.IDisposable");
+        INamedTypeSymbol? iasyncDisposable = compilation.GetTypeByMetadataName("System.IAsyncDisposable");
         INamedTypeSymbol? rpcMarshalableAttribute = compilation.GetTypeByMetadataName(Types.RpcMarshalableAttribute.FullName);
         INamedTypeSymbol? rpcMarshalableOptionalInterface = compilation.GetTypeByMetadataName(Types.RpcMarshalableOptionalInterfaceAttribute.FullName);
         INamedTypeSymbol? rpcContractAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcContractAttribute.FullName);
@@ -50,6 +53,7 @@ internal record KnownSymbols(
         INamedTypeSymbol? rpcProxyMappingAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcProxyMappingAttribute.FullName);
         INamedTypeSymbol? jsonRpcIgnoreAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcIgnoreAttribute.FullName);
         INamedTypeSymbol? jsonRpcMethodAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcMethodAttribute.FullName);
+        INamedTypeSymbol? jsonRpcEventAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcEventAttribute.FullName);
         INamedTypeSymbol? jsonRpcParameterAttribute = compilation.GetTypeByMetadataName(Types.JsonRpcParameterAttribute.FullName);
         INamedTypeSymbol? methodShapeAttribute = compilation.GetTypeByMetadataName(Types.MethodShapeAttribute.FullName);
         INamedTypeSymbol? systemType = compilation.GetTypeByMetadataName("System.Type");
@@ -64,6 +68,7 @@ internal record KnownSymbols(
             exportRpcContractProxiesAttribute is null ||
             rpcProxyMappingAttribute is null ||
             jsonRpcMethodAttribute is null ||
+            jsonRpcEventAttribute is null ||
             jsonRpcParameterAttribute is null ||
             systemType is null ||
             systemIOStream is null ||
@@ -73,7 +78,7 @@ internal record KnownSymbols(
             return false;
         }
 
-        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcIgnoreAttribute, jsonRpcMethodAttribute, jsonRpcParameterAttribute, methodShapeAttribute, systemType, systemIOStream);
+        symbols = new KnownSymbols(task, taskOfT, valueTask, valueTaskOfT, asyncEnumerableOfT, generateShapeAttribute, typeShapeAttribute, cancellationToken, idisposable, iasyncDisposable, rpcMarshalableAttribute, rpcMarshalableOptionalInterface, rpcContractAttribute, jsonRpcProxyAttribute, jsonRpcProxyInterfaceGroupAttribute, exportRpcContractProxiesAttribute, rpcProxyMappingAttribute, jsonRpcIgnoreAttribute, jsonRpcMethodAttribute, jsonRpcEventAttribute, jsonRpcParameterAttribute, methodShapeAttribute, systemType, systemIOStream);
         return true;
     }
 }

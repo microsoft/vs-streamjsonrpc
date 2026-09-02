@@ -388,6 +388,7 @@ public class RpcTargetMetadata
             return false;
         }
 
+        JsonRpcEventAttribute? eventAttribute = FindEventAttribute<JsonRpcEventAttribute>(builder, @event);
         CreateEventHandlerDelegate? createEventHandler;
         if (@event.EventHandlerType == typeof(EventHandler))
         {
@@ -410,7 +411,7 @@ public class RpcTargetMetadata
 
         builder.Events.Add(new EventMetadata
         {
-            Name = @event.Name,
+            Name = eventAttribute?.Name ?? @event.Name,
             EventHandlerType = @event.EventHandlerType,
             CreateEventHandler = createEventHandler,
             AddEventHandler = (target, handler) => @event.AddEventHandler(target, handler),
@@ -439,6 +440,43 @@ public class RpcTargetMetadata
         [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "False positive: https://github.com/dotnet/runtime/issues/114113")]
         static ParameterInfo[] GetParameters(EventInfo eventInfo) =>
             eventInfo.EventHandlerType!.GetTypeInfo().GetMethod("Invoke")!.GetParameters();
+    }
+
+    private static T? FindEventAttribute<T>(Builder builder, EventInfo @event)
+        where T : Attribute
+    {
+        if (@event.GetCustomAttribute<T>() is T attribute)
+        {
+            return attribute;
+        }
+
+        MethodInfo? eventAccessor = @event.AddMethod ?? @event.RemoveMethod;
+        if (eventAccessor is null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < builder.InterfaceMaps.Length; i++)
+        {
+            InterfaceMapping map = builder.InterfaceMaps.Span[i];
+            int methodIndex = Array.IndexOf(map.TargetMethods, eventAccessor);
+            if (methodIndex < 0)
+            {
+                continue;
+            }
+
+            MethodInfo interfaceAccessor = map.InterfaceMethods[methodIndex];
+            foreach (EventInfo interfaceEvent in builder.GetInterfaceType(i).GetEvents())
+            {
+                if ((interfaceEvent.AddMethod == interfaceAccessor || interfaceEvent.RemoveMethod == interfaceAccessor) &&
+                    interfaceEvent.GetCustomAttribute<T>() is T inheritedAttribute)
+                {
+                    return inheritedAttribute;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static T? FindMethodAttribute<T>(Builder builder, MethodInfo method)
@@ -921,6 +959,8 @@ public class RpcTargetMetadata
 
     private class Builder
     {
+        private readonly ClassAndInterfaces? classAndInterfaces;
+
         internal Builder(ITypeShape shape)
         {
             this.TargetType = shape.Type;
@@ -933,6 +973,7 @@ public class RpcTargetMetadata
 
         internal Builder(ClassAndInterfaces classAndInterfaces)
         {
+            this.classAndInterfaces = classAndInterfaces;
             this.TargetType = classAndInterfaces.ClassType;
 
             InterfaceMapping[] mapping = new InterfaceMapping[classAndInterfaces.InterfaceCount];
@@ -951,6 +992,9 @@ public class RpcTargetMetadata
         internal Dictionary<string, List<TargetMethodMetadata>> Methods { get; } = new(StringComparer.Ordinal);
 
         internal List<EventMetadata> Events { get; } = [];
+
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents)]
+        internal Type GetInterfaceType(int index) => this.classAndInterfaces![index];
 
         internal void AddMethod(TargetMethodMetadata methodMetadata)
         {
@@ -1017,7 +1061,7 @@ public class RpcTargetMetadata
 
             return new EventMetadata
             {
-                Name = eventShape.Name,
+                Name = eventShape.AttributeProvider.GetCustomAttribute<JsonRpcEventAttribute>(inherit: true)?.Name ?? eventShape.Name,
                 EventHandlerType = eventShape.HandlerType.Type,
                 CreateEventHandler = createEventHandlerDelegate,
                 AddEventHandler = (target, handler) =>

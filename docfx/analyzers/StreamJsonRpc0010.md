@@ -9,6 +9,8 @@ Two methods are considered ambiguous when:
 
 Parameter names and types do not resolve this warning because positional JSON-RPC arguments include neither. StreamJsonRpc may try deserializing arguments into each candidate overload, but the first overload that succeeds is not a reliable way to select a method and adds avoidable overhead.
 
+Overloads that differ only by a trailing <xref:System.Threading.CancellationToken> are not ambiguous. StreamJsonRpc consistently selects the overload with the cancellation token so that incoming request cancellation can be observed.
+
 ## Example violation
 
 Both overloads below accept two serialized arguments.

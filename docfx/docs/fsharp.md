@@ -5,8 +5,8 @@ The `IGreeter` interface is the RPC contract shared by both sides.
 
 [!code-fsharp[](../../samples/fs/Program.fs)]
 
-Run the sample from the repository root:
+Run the sample test from the repository root:
 
 ```console
-dotnet run --project samples/fs/FSharpSample.fsproj
+dotnet test --project samples/fs/FSharpSample.fsproj
 ```

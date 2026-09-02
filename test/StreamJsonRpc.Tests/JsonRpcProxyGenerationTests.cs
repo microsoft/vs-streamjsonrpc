@@ -11,6 +11,7 @@ using System.Runtime.Loader;
 #endif
 using Microsoft.VisualStudio.Threading;
 using Nerdbank;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc.Reflection;
 using StreamJsonRpc.Tests;
 using ExAssembly = StreamJsonRpc.Tests.ExternalAssembly;
@@ -50,6 +51,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServer
     {
+        [JsonRpcEvent("AThingHappened")]
         event EventHandler ItHappened;
 
         event EventHandler<CustomEventArgs> TreeGrown;
@@ -124,6 +126,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IAsyncDisposableServer2 : System.IAsyncDisposable, IServer2
+    {
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
+    public partial interface IServerWithDisposeAsyncMethod
+    {
+        ValueTask DisposeAsync();
+    }
+
+    [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     [SuppressMessage("Usage", "StreamJsonRpc0010", Justification = "Overloads are intentional to test proxy cancellation behavior.")]
     public partial interface IServerWithParamsObject
     {
@@ -164,6 +177,8 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     [JsonRpcContract, GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial interface IServerWithVoidReturnType
     {
+        void Notify();
+
         void Notify(int a, int b);
 
         void NotifyWithCancellation(int a, int b, CancellationToken cancellationToken);
@@ -397,6 +412,24 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
+    public async Task RpcInterfaceCanDispose_IAsyncDisposable()
+    {
+        var streams = FullDuplexStream.CreateStreams();
+
+        var clientRpc = this.AttachJsonRpc<IAsyncDisposableServer2>(streams.Item1);
+        var server = new Server2();
+
+        this.serverRpc = new JsonRpc(streams.Item2);
+        this.serverRpc.AddLocalRpcTarget(server);
+        this.serverRpc.StartListening();
+
+        Assert.Equal(6, await clientRpc.MultiplyAsync(2, 3));
+        await clientRpc.DisposeAsync();
+        Assert.True(((IJsonRpcClientProxy)clientRpc).JsonRpc.IsDisposed);
+        ((IDisposable)clientRpc).Dispose();
+    }
+
+    [Fact]
     public async Task CallMethod_void_String()
     {
         Assert.Equal("Hi!", await this.clientRpc.SayHiAsync());
@@ -413,6 +446,20 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         await this.clientRpc.IncrementAsync();
         Assert.Equal(1, this.server.Counter);
+    }
+
+    [Fact]
+    public async Task CallVoidMethod_NoArguments_ServerRequiresNamedArguments_NeverUsesArray()
+    {
+        var messageHandler = new CapturingMessageHandler();
+        using JsonRpc clientRpc = new(messageHandler);
+        IServerWithVoidReturnType proxy = clientRpc.Attach<IServerWithVoidReturnType>(new JsonRpcProxyOptions(this.DefaultProxyOptions) { ServerRequiresNamedArguments = true });
+        clientRpc.StartListening();
+
+        proxy.Notify();
+        JToken request = await messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
+
+        Assert.True(request["params"] is null or JObject);
     }
 
     [Theory]
@@ -451,6 +498,35 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
             await Task.Delay(1, TestContext.Current.CancellationToken);
             this.TimeoutToken.ThrowIfCancellationRequested();
         }
+    }
+
+    [Fact]
+    public async Task ImplementsIAsyncDisposable()
+    {
+        var disposableClient = Assert.IsAssignableFrom<System.IAsyncDisposable>(this.clientRpc);
+        await disposableClient.DisposeAsync();
+        Assert.True(((IDisposableObservable)this.clientRpc).IsDisposed);
+    }
+
+    [Fact]
+    public void RpcMethodNamedDisposeAsyncDoesNotCollideWithAsyncDisposal()
+    {
+        var rpc = new JsonRpc(Stream.Null);
+        var clientRpc = rpc.Attach<IServerWithDisposeAsyncMethod>(this.DefaultProxyOptions);
+
+        Assert.IsAssignableFrom<System.IAsyncDisposable>(clientRpc);
+    }
+
+    [Fact]
+    public async Task DisposeAsyncReturnsFaultedValueTaskWhenDisposalFails()
+    {
+        var rpc = new ThrowingDisposeJsonRpc();
+        var clientRpc = (System.IAsyncDisposable)rpc.Attach<IServer>(this.DefaultProxyOptions);
+
+        ValueTask disposal = clientRpc.DisposeAsync();
+
+        Assert.True(disposal.IsCompleted);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => disposal.AsTask());
     }
 
     [Fact]
@@ -831,7 +907,7 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     }
 
     [Fact]
-    public async Task NonGenericEventRaisedOnClient()
+    public async Task SharedContractRenamedEventRaisedOnClient()
     {
         var tcs = new TaskCompletionSource<EventArgs>();
         EventHandler handler = (sender, args) => tcs.SetResult(args);
@@ -1159,7 +1235,17 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 #endif
 
 #if NO_INTERCEPTORS
-    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic);
+    public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
+    {
+        [Fact]
+        public void IAsyncDisposableMayBeContractInterface()
+        {
+            using JsonRpc rpc = new(Stream.Null);
+            object proxy = rpc.Attach(typeof(System.IAsyncDisposable), this.DefaultProxyOptions);
+
+            Assert.IsAssignableFrom<System.IAsyncDisposable>(proxy);
+        }
+    }
 #endif
 
     public class SourceGenerated(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysSourceGenerated)
@@ -1338,6 +1424,10 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
         public ValueTask<int> AddValueAsync(int a, int b) => new ValueTask<int>(a + b);
 
+        public void Notify()
+        {
+        }
+
         public void Notify(int a, int b) => this.NotifyResult.SetResult(a + b);
 
         public void NotifyWithCancellation(int a, int b, CancellationToken cancellationToken) => this.Notify(a, b);
@@ -1379,6 +1469,46 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
     {
         public Task<ExAssembly.SomeOtherInternalType?> GetOptionsAsync(ExAssembly.InternalStruct id, CancellationToken cancellationToken)
             => Task.FromResult<ExAssembly.SomeOtherInternalType?>(null);
+    }
+
+    private sealed class ThrowingDisposeJsonRpc() : JsonRpc(Stream.Null)
+    {
+        protected override void Dispose(bool disposing) => throw new InvalidOperationException();
+    }
+
+    private sealed class CapturingMessageHandler : MessageHandlerBase
+    {
+        private readonly JsonMessageFormatter formatter;
+
+        internal CapturingMessageHandler()
+            : this(new JsonMessageFormatter())
+        {
+        }
+
+        private CapturingMessageHandler(JsonMessageFormatter formatter)
+            : base(formatter)
+        {
+            this.formatter = formatter;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanWrite => true;
+
+        internal AsyncQueue<JToken> MessagesToRead { get; } = new();
+
+        internal AsyncQueue<JToken> WrittenMessages { get; } = new();
+
+        protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
+            => this.formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
+
+        protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
+        {
+            this.WrittenMessages.Enqueue(this.formatter.Serialize(content));
+            return default;
+        }
+
+        protected override ValueTask FlushAsync(CancellationToken cancellationToken) => default;
     }
 
     private class TimeTestedServer : ITimeTestedProxy

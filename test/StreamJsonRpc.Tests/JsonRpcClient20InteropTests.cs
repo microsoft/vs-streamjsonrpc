@@ -137,10 +137,41 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         Assert.Equal("value", request["params"]?["Bar"]?.ToString());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InvokeWithParameterPassedAsObjectAsync_NullOrEmptyDictionaryNeverSentAsArray(bool useNull)
+    {
+        IReadOnlyDictionary<string, object?>? arguments = useNull ? null : new Dictionary<string, object?>();
+        Task invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<object>(
+            "test",
+            arguments,
+            argumentDeclaredTypes: null,
+            TestContext.Current.CancellationToken);
+        JToken request = await this.ReceiveAsync();
+        if (useNull)
+        {
+            Assert.Null(request["params"]);
+        }
+        else
+        {
+            Assert.Equal(JTokenType.Object, request["params"]?.Type);
+            Assert.Empty((JObject)request["params"]!);
+        }
+    }
+
     [Fact]
     public async Task InvokeWithParameterPassedAsObjectAsync_NoParameter()
     {
         Task notifyTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", cancellationToken: TestContext.Current.CancellationToken);
+        JToken request = await this.ReceiveAsync();
+        Assert.Null(request["params"]);
+    }
+
+    [Fact]
+    public async Task InvokeWithParameterPassedAsObjectAsync_ExplicitNullObjectOmitsParams()
+    {
+        Task invokeTask = this.clientRpc.InvokeWithParameterObjectAsync<object>("test", (object?)null, TestContext.Current.CancellationToken);
         JToken request = await this.ReceiveAsync();
         Assert.Null(request["params"]);
     }
