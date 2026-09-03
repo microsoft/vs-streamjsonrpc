@@ -175,6 +175,18 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";StreamJsonRpc0010_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[RPC method name '{0}' has overloads with overlapping argument counts.]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0010_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Avoid ambiguous RPC method overloads]]></Val>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";StreamJsonRpc0011_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The return type {0} on {1} is not supported in RPC methods.]]></Val>
@@ -280,6 +292,21 @@
           <Tgt Cat="Text" Stat="Loc" Orig="New">
             <Val><![CDATA[Délégué d’événement non pris en charge]]></Val>
           </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0017_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Parameter {0} on RPC method {1} may not use a by-reference modifier.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Le paramètre {0} sur la méthode RPC {1} ne peut pas utiliser de modificateur par référence.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";StreamJsonRpc0017_Title" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Unsupported by-reference parameter]]></Val>
         </Str>
         <Disp Icon="Str" />
       </Item>

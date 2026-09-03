@@ -736,6 +736,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";UnsupportedByRefParameterOnClientProxyInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Method "{0}" has unsupported by-reference parameter "{1}". By-reference parameters are not supported.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[메서드 "{0}"에 지원되지 않는 참조 매개 변수 "{1}"이(가) 있습니다. 참조에 의한 매개 변수는 지원되지 않습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";UnsupportedEventHandlerTypeOnClientProxyInterface" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event handler type on "{0}". Only EventHandler and EventHandler<T> are supported.]]></Val>

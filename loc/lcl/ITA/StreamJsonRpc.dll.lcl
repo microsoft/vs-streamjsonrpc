@@ -736,6 +736,15 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";UnsupportedByRefParameterOnClientProxyInterface" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Method "{0}" has unsupported by-reference parameter "{1}". By-reference parameters are not supported.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Il "{0}" del metodo contiene "{1}" di parametri per riferimento non supportati. I parametri per riferimento non sono supportati.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";UnsupportedEventHandlerTypeOnClientProxyInterface" ItemType="0" PsrId="211" InstFlg="true" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Unsupported event handler type on "{0}". Only EventHandler and EventHandler<T> are supported.]]></Val>
