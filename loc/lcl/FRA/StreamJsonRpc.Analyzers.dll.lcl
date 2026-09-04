@@ -178,12 +178,18 @@
       <Item ItemId=";StreamJsonRpc0010_MessageFormat" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[RPC method name '{0}' has overloads with overlapping argument counts.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Le nom de méthode RPC « {0} » a des surcharges dont le nombre d’arguments se chevauche.]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
       <Item ItemId=";StreamJsonRpc0010_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Avoid ambiguous RPC method overloads]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Évitez les surcharges ambiguës de méthodes RPC]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
@@ -307,6 +313,9 @@
       <Item ItemId=";StreamJsonRpc0017_Title" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[Unsupported by-reference parameter]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Paramètre par référence non pris en charge]]></Val>
+          </Tgt>
         </Str>
         <Disp Icon="Str" />
       </Item>
