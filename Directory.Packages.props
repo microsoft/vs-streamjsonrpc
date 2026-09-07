@@ -42,7 +42,7 @@
     <PackageVersion Include="System.ValueTuple" Version="4.6.2" />
     <PackageVersion Include="xunit.combinatorial" Version="2.1.41" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
-    <PackageVersion Include="xunit.stafact" Version="3.0.13" />
+    <PackageVersion Include="xunit.stafact" Version="4.0.23" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.10.0" />
@@ -51,7 +51,7 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.Telemetry" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Internal.MicroBuild.NonShipping" Version="$(MicroBuildVersion)" />
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
     <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
