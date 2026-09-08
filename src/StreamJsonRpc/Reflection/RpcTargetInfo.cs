@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using StreamJsonRpc.Protocol;
@@ -284,13 +285,38 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         JsonRpcMethodAttribute? pseudoAttribute = (options.ClientRequiresNamedArguments || options.UseSingleObjectParameterDeserialization)
             ? new() { ClientRequiresNamedArguments = options.ClientRequiresNamedArguments, UseSingleObjectParameterDeserialization = options.UseSingleObjectParameterDeserialization }
             : null;
+        HashSet<MethodInfo>? methodsWithReportedDefaultValueConflicts = null;
+        var resolvedMethods = new List<(string RpcMethodName, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata> Methods)>();
+        Dictionary<string, HashSet<MethodInfo>>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
+        foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
+        {
+            string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
+            Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+            resolvedMethods.Add((rpcMethodName, item.Value));
+
+            if (methodsByRpcName is not null)
+            {
+                if (!methodsByRpcName.TryGetValue(rpcMethodName, out HashSet<MethodInfo>? methods))
+                {
+                    methodsByRpcName.Add(rpcMethodName, methods = []);
+                }
+
+                foreach (RpcTargetMetadata.TargetMethodMetadata method in item.Value)
+                {
+                    methods.Add(method.MethodInfo);
+                }
+
+                if (methods.Count > 1)
+                {
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                }
+            }
+        }
 
         lock (this.SyncObject)
         {
-            foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
+            foreach ((string rpcMethodName, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata> methods) in resolvedMethods)
             {
-                string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
-                Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
                 bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
                 if (!alreadyExists)
                 {
@@ -298,9 +324,26 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
 
                 // Avoid adding the same metadata twice while allowing distinct wire-equivalent overloads.
-                foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
+                foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in methods)
                 {
-                    var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
+                    var signatureAndTarget = new MethodSignatureAndTarget(
+                        newMethod,
+                        target,
+                        pseudoAttribute,
+                        null,
+                        options.ParameterNameTransform,
+                        options.AllowFlexibleNamedArgumentMatching);
+
+                    if (signatureAndTarget.HasConflictingInterfaceDefaultValues &&
+                        (methodsWithReportedDefaultValueConflicts ??= []).Add(newMethod.MethodInfo) &&
+                        this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(
+                            TraceEventType.Warning,
+                            (int)JsonRpc.TraceEvents.ConflictingParameterDefaultValues,
+                            "RPC target method {0} implements interface methods with conflicting parameter default values. Default values declared on {0} will be used.",
+                            newMethod.MethodInfo);
+                    }
 
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
                     if (!alreadyExists || !existingList!.Any(e => e.Equals(signatureAndTarget)))

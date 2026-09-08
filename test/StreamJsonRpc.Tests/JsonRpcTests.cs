@@ -1408,6 +1408,141 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task FlexibleNamedArguments_IgnoresUnknownArgumentsAndSuppliesDefaults()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleNamedArguments),
+            NamedArgs.Create(new { unknown = true }),
+            this.TimeoutToken);
+
+        Assert.Equal("0:<null>:<null>:5", result);
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_StrictMatchingRemainsTheDefault()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleNamedArguments),
+            NamedArgs.Create(new { number = 1, text = "a", nullable = 2, optional = 3, unknown = true }),
+            this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_DoesNotApplyToPositionalArguments()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(
+            nameof(Server.FlexibleNamedArguments),
+            new object[] { 1 },
+            this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_ValidatesSuppliedArgumentTypes()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleNamedArguments),
+            NamedArgs.Create(new { number = "not an integer" }),
+            this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_RequiredParameterMustBePresent()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleRequiredArgument),
+            NamedArgs.Create(new { unknown = true }),
+            this.TimeoutToken));
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_RequiredParameterMayBeNull()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleRequiredArgument),
+            NamedArgs.Create(new { value = (string?)null }),
+            this.TimeoutToken);
+
+        Assert.Equal("<null>", result);
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_RequiredParameterUsesTransformedRpcName()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions
+        {
+            AllowFlexibleNamedArgumentMatching = true,
+            ParameterNameTransform = name => "rpc" + char.ToUpperInvariant(name[0]) + name.Substring(1),
+        });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
+            nameof(Server.FlexibleRenamedRequiredArgument),
+            NamedArgs.Create(new { rpcWireValue = "supplied" }),
+            this.TimeoutToken);
+
+        Assert.Equal("supplied", result);
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_PreservesSingleObjectDeserialization()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
+            "test/MethodWithSingleObjectParameter",
+            new XAndYProperties { x = 2, y = 5 },
+            this.TimeoutToken);
+
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
+    public async Task FlexibleNamedArguments_PreservesNamedProgressNotifications()
+    {
+        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions
+        {
+            AllowFlexibleNamedArgumentMatching = true,
+            ClientRequiresNamedArguments = true,
+        });
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+        int report = 0;
+        var progress = new ProgressWithCompletion<int>(value => report = value);
+
+        int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithProgressParameter),
+            NamedArgs.Create(new { p = progress, unknown = true }),
+            this.TimeoutToken);
+        await progress.WaitAsync(this.TimeoutToken);
+
+        Assert.Equal(1, result);
+        Assert.Equal(1, report);
+    }
+
+    [Fact]
     public async Task InvokeWithParameterObject_ProgressParameter()
     {
         int report = 0;
@@ -3388,7 +3523,7 @@ public abstract partial class JsonRpcTests : TestBase
         return base.CheckGCPressureAsync(scenario, maxBytesAllocated, iterations, allowedAttempts);
     }
 
-    protected void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false, bool blockingClientSend = false)
+    protected void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false, bool blockingClientSend = false, JsonRpcTargetOptions? serverTargetOptions = null)
     {
         this.clientRpc?.Dispose();
         this.serverRpc?.Dispose();
@@ -3399,7 +3534,8 @@ public abstract partial class JsonRpcTests : TestBase
 
         this.InitializeFormattersAndHandlers(controlledFlushingClient);
 
-        this.serverRpc = new JsonRpc(this.serverMessageHandler, this.server);
+        this.serverRpc = new JsonRpc(this.serverMessageHandler);
+        this.serverRpc.AddLocalRpcTarget(this.server, serverTargetOptions);
         this.clientRpc = blockingClientSend
             ? new BlockingSendJsonRpc(this.clientMessageHandler)
             : new JsonRpc(this.clientMessageHandler);
@@ -3609,6 +3745,21 @@ public abstract partial class JsonRpcTests : TestBase
         public static int MethodWithDefaultParameter(int x, int y = 10)
         {
             return x + y;
+        }
+
+        public static string FlexibleNamedArguments(int number, string? text, int? nullable, int optional = 5)
+        {
+            return $"{number}:{text ?? "<null>"}:{nullable?.ToString() ?? "<null>"}:{optional}";
+        }
+
+        public static string FlexibleRequiredArgument([System.ComponentModel.DataAnnotations.Required] string? value = "default")
+        {
+            return value ?? "<null>";
+        }
+
+        public static string FlexibleRenamedRequiredArgument([JsonRpcParameter("wireValue"), System.ComponentModel.DataAnnotations.Required] string? value = "default")
+        {
+            return value ?? "<null>";
         }
 
         public static int MethodWithOneNonObjectParameter(int x)

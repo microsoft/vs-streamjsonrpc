@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json.Nodes;
@@ -247,54 +248,46 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// </returns>
     /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
     public virtual ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+        => this.TryGetTypedArgumentsCore(parameters, parameterNames, typedArguments, allowFlexibleNamedArgumentMatching: false);
+
+    /// <summary>
+    /// Gets the arguments to supply to the method invocation, coerced to types that will satisfy the given list of parameters.
+    /// </summary>
+    /// <param name="parameters">The list of parameters that the arguments must satisfy.</param>
+    /// <param name="parameterNames">
+    /// The names to use when matching named arguments to parameters.
+    /// When omitted, each <see cref="ParameterInfo.Name"/> from <paramref name="parameters"/> is used.
+    /// </param>
+    /// <param name="typedArguments">
+    /// An array to initialize with arguments that can satisfy CLR type requirements for each of the <paramref name="parameters"/>.
+    /// The length of this span must equal the length of <paramref name="parameters"/>.
+    /// </param>
+    /// <param name="allowFlexibleNamedArgumentMatching">
+    /// <see langword="true"/> to ignore unmatched named arguments and supply defaults for missing parameters;
+    /// <see langword="false"/> to require exact argument matching.
+    /// </param>
+    /// <returns>
+    /// An <see cref="ArgumentMatchResult"/> describing whether argument matching succeeded or why it failed.
+    /// </returns>
+    /// <exception cref="RpcArgumentDeserializationException">Thrown if the argument exists, but cannot be deserialized.</exception>
+    public virtual ArgumentMatchResult TryGetTypedArguments(
+        ReadOnlySpan<ParameterInfo> parameters,
+        ReadOnlySpan<string?> parameterNames,
+        Span<object?> typedArguments,
+        bool allowFlexibleNamedArgumentMatching)
     {
-        Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
-        Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
-
-        // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
-        if (parameters.Length < this.ArgumentCount)
+        if (allowFlexibleNamedArgumentMatching)
         {
-            return ArgumentMatchResult.ParameterArgumentCountMismatch;
-        }
-
-        if (parameters.Length == 0)
-        {
-            return ArgumentMatchResult.Success;
-        }
-
-        for (int i = 0; i < parameters.Length; i++)
-        {
-            ParameterInfo parameter = parameters[i];
-            string? parameterName = parameterNames.IsEmpty ? parameter.Name : parameterNames[i];
-            if (this.TryGetArgumentByNameOrIndex(parameterName, i, parameter.ParameterType, out object? argument))
+            ArgumentMatchResult exactMatch = parameterNames.IsEmpty
+                ? this.TryGetTypedArguments(parameters, typedArguments)
+                : this.TryGetTypedArguments(parameters, parameterNames, typedArguments);
+            if (exactMatch == ArgumentMatchResult.Success)
             {
-                if (argument is null)
-                {
-                    if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) is null)
-                    {
-                        // We cannot pass a null value to a value type parameter.
-                        return ArgumentMatchResult.ParameterArgumentTypeMismatch;
-                    }
-                }
-                else if (!parameter.ParameterType.GetTypeInfo().IsAssignableFrom(argument.GetType()))
-                {
-                    return ArgumentMatchResult.ParameterArgumentTypeMismatch;
-                }
-
-                typedArguments[i] = argument;
-            }
-            else if (parameter.HasDefaultValue)
-            {
-                // The client did not supply an argument, but we have a default value to use, courtesy of the parameter itself.
-                typedArguments[i] = parameter.DefaultValue;
-            }
-            else
-            {
-                return ArgumentMatchResult.MissingArgument;
+                return exactMatch;
             }
         }
 
-        return ArgumentMatchResult.Success;
+        return this.TryGetTypedArgumentsCore(parameters, parameterNames, typedArguments, allowFlexibleNamedArgumentMatching);
     }
 
     /// <summary>
@@ -335,4 +328,73 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
             ["method"] = this.Method,
         }.ToJsonString();
     }
+
+    /// <summary>
+    /// Implements argument matching after formatter-specific bulk deserialization has had an opportunity to run.
+    /// </summary>
+    private protected ArgumentMatchResult TryGetTypedArgumentsCore(
+        ReadOnlySpan<ParameterInfo> parameters,
+        ReadOnlySpan<string?> parameterNames,
+        Span<object?> typedArguments,
+        bool allowFlexibleNamedArgumentMatching)
+    {
+        Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
+        Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
+
+        // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
+        if (!allowFlexibleNamedArgumentMatching && parameters.Length < this.ArgumentCount)
+        {
+            return ArgumentMatchResult.ParameterArgumentCountMismatch;
+        }
+
+        if (parameters.Length == 0)
+        {
+            return ArgumentMatchResult.Success;
+        }
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            ParameterInfo parameter = parameters[i];
+            string? parameterName = parameterNames.IsEmpty ? parameter.Name : parameterNames[i];
+            if (this.TryGetArgumentByNameOrIndex(parameterName, i, parameter.ParameterType, out object? argument))
+            {
+                if (argument is null)
+                {
+                    if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) is null)
+                    {
+                        // We cannot pass a null value to a value type parameter.
+                        return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                    }
+                }
+                else if (!parameter.ParameterType.GetTypeInfo().IsAssignableFrom(argument.GetType()))
+                {
+                    return ArgumentMatchResult.ParameterArgumentTypeMismatch;
+                }
+
+                typedArguments[i] = argument;
+            }
+            else if (parameter is MethodSignatureAndTarget.EffectiveParameterInfo { IsRequired: true })
+            {
+                return ArgumentMatchResult.MissingArgument;
+            }
+            else if (parameter.HasDefaultValue)
+            {
+                // The client did not supply an argument, but we have a default value to use, courtesy of the parameter itself.
+                typedArguments[i] = parameter.DefaultValue;
+            }
+            else if (allowFlexibleNamedArgumentMatching)
+            {
+                typedArguments[i] = parameter.ParameterType.GetTypeInfo().IsValueType ? GetDefaultValue(parameter.ParameterType) : null;
+            }
+            else
+            {
+                return ArgumentMatchResult.MissingArgument;
+            }
+        }
+
+        return ArgumentMatchResult.Success;
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "FormatterServices does not invoke or otherwise require constructors when creating the default value.")]
+    private static object? GetDefaultValue(Type type) => Nullable.GetUnderlyingType(type) is null ? FormatterServices.GetUninitializedObject(type) : null;
 }

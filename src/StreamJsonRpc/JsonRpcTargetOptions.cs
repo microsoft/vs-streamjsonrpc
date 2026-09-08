@@ -30,6 +30,7 @@ public class JsonRpcTargetOptions
         this.AllowNonPublicInvocation = copyFrom.AllowNonPublicInvocation;
         this.UseSingleObjectParameterDeserialization = copyFrom.UseSingleObjectParameterDeserialization;
         this.ClientRequiresNamedArguments = copyFrom.ClientRequiresNamedArguments;
+        this.AllowFlexibleNamedArgumentMatching = copyFrom.AllowFlexibleNamedArgumentMatching;
         this.DisposeOnDisconnect = copyFrom.DisposeOnDisconnect;
     }
 
@@ -80,6 +81,26 @@ public class JsonRpcTargetOptions
     /// This value serves as a default for <see cref="JsonRpcMethodAttribute.ClientRequiresNamedArguments"/> for members that have no <see cref="JsonRpcMethodAttribute"/> applied.
     /// </remarks>
     public bool ClientRequiresNamedArguments { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether named arguments may omit target method parameters or include names that do not match any parameter.
+    /// </summary>
+    /// <value>The default value is <see langword="false"/>.</value>
+    /// <remarks>
+    /// <para>
+    /// When <see langword="true"/>, named arguments that do not match any target method parameter are ignored.
+    /// Parameters without a corresponding named argument receive their declared default value, or the default value for their parameter type when no default is declared.
+    /// Parameters annotated with <see cref="T:System.ComponentModel.DataAnnotations.RequiredAttribute"/> must have a corresponding named argument.
+    /// </para>
+    /// <para>
+    /// This option does not affect positional arguments.
+    /// </para>
+    /// <para>
+    /// A target cannot be registered with this option enabled when multiple methods resolve to the same RPC method name,
+    /// because flexible argument matching cannot reliably disambiguate overloads.
+    /// </para>
+    /// </remarks>
+    public bool AllowFlexibleNamedArgumentMatching { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether to dispose of the target object

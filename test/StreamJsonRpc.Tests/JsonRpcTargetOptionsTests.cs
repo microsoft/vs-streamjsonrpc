@@ -11,6 +11,7 @@ public class JsonRpcTargetOptionsTests
     {
         JsonRpcTargetOptions options = new();
         options.AllowNonPublicInvocation = !options.AllowNonPublicInvocation;
+        options.AllowFlexibleNamedArgumentMatching = !options.AllowFlexibleNamedArgumentMatching;
         options.ClientRequiresNamedArguments = !options.ClientRequiresNamedArguments;
         options.DisposeOnDisconnect = !options.DisposeOnDisconnect;
         options.EventNameTransform = s => s;
@@ -21,6 +22,7 @@ public class JsonRpcTargetOptionsTests
 
         JsonRpcTargetOptions copy = new(options);
         Assert.Equal(options.AllowNonPublicInvocation, copy.AllowNonPublicInvocation);
+        Assert.Equal(options.AllowFlexibleNamedArgumentMatching, copy.AllowFlexibleNamedArgumentMatching);
         Assert.Equal(options.ClientRequiresNamedArguments, copy.ClientRequiresNamedArguments);
         Assert.Equal(options.DisposeOnDisconnect, copy.DisposeOnDisconnect);
         Assert.Equal(options.EventNameTransform, copy.EventNameTransform);
