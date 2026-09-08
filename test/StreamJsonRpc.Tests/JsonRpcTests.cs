@@ -1410,12 +1410,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_IgnoresUnknownArgumentsAndSuppliesDefaults()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
-            nameof(Server.FlexibleNamedArguments),
+            nameof(FlexibleNamedArgumentTarget.FlexibleNamedArguments),
             NamedArgs.Create(new { unknown = true }),
             this.TimeoutToken);
 
@@ -1434,12 +1434,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_DoesNotApplyToPositionalArguments()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithCancellationAsync<string>(
-            nameof(Server.FlexibleNamedArguments),
+            nameof(FlexibleNamedArgumentTarget.FlexibleNamedArguments),
             new object[] { 1 },
             this.TimeoutToken));
     }
@@ -1447,12 +1447,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_ValidatesSuppliedArgumentTypes()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<string>(
-            nameof(Server.FlexibleNamedArguments),
+            nameof(FlexibleNamedArgumentTarget.FlexibleNamedArguments),
             NamedArgs.Create(new { number = "not an integer" }),
             this.TimeoutToken));
     }
@@ -1460,12 +1460,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_RequiredParameterMustBePresent()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<string>(
-            nameof(Server.FlexibleRequiredArgument),
+            nameof(FlexibleNamedArgumentTarget.FlexibleRequiredArgument),
             NamedArgs.Create(new { unknown = true }),
             this.TimeoutToken));
     }
@@ -1473,12 +1473,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_RequiredParameterMayBeNull()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
         string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
-            nameof(Server.FlexibleRequiredArgument),
+            nameof(FlexibleNamedArgumentTarget.FlexibleRequiredArgument),
             NamedArgs.Create(new { value = (string?)null }),
             this.TimeoutToken);
 
@@ -1488,7 +1488,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_RequiredParameterUsesTransformedRpcName()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions
+        this.ReinitializeFlexibleRpcWithoutListening(new JsonRpcTargetOptions
         {
             AllowFlexibleNamedArgumentMatching = true,
             ParameterNameTransform = name => "rpc" + char.ToUpperInvariant(name[0]) + name.Substring(1),
@@ -1497,7 +1497,7 @@ public abstract partial class JsonRpcTests : TestBase
         this.clientRpc.StartListening();
 
         string result = await this.clientRpc.InvokeWithParameterObjectAsync<string>(
-            nameof(Server.FlexibleRenamedRequiredArgument),
+            nameof(FlexibleNamedArgumentTarget.FlexibleRenamedRequiredArgument),
             NamedArgs.Create(new { rpcWireValue = "supplied" }),
             this.TimeoutToken);
 
@@ -1507,7 +1507,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_PreservesSingleObjectDeserialization()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        this.ReinitializeFlexibleRpcWithoutListening();
         this.serverRpc.StartListening();
         this.clientRpc.StartListening();
 
@@ -1522,7 +1522,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedArguments_PreservesNamedProgressNotifications()
     {
-        this.ReinitializeRpcWithoutListening(serverTargetOptions: new JsonRpcTargetOptions
+        this.ReinitializeFlexibleRpcWithoutListening(new JsonRpcTargetOptions
         {
             AllowFlexibleNamedArgumentMatching = true,
             ClientRequiresNamedArguments = true,
@@ -1533,7 +1533,7 @@ public abstract partial class JsonRpcTests : TestBase
         var progress = new ProgressWithCompletion<int>(value => report = value);
 
         int result = await this.clientRpc.InvokeWithParameterObjectAsync<int>(
-            nameof(Server.MethodWithProgressParameter),
+            nameof(FlexibleNamedArgumentTarget.MethodWithProgressParameter),
             NamedArgs.Create(new { p = progress, unknown = true }),
             this.TimeoutToken);
         await progress.WaitAsync(this.TimeoutToken);
@@ -3524,24 +3524,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     protected void ReinitializeRpcWithoutListening(bool controlledFlushingClient = false, bool blockingClientSend = false, JsonRpcTargetOptions? serverTargetOptions = null)
-    {
-        this.clientRpc?.Dispose();
-        this.serverRpc?.Dispose();
-
-        var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        this.serverStream = streams.Item1;
-        this.clientStream = streams.Item2;
-
-        this.InitializeFormattersAndHandlers(controlledFlushingClient);
-
-        this.serverRpc = new JsonRpc(this.serverMessageHandler);
-        this.serverRpc.AddLocalRpcTarget(this.server, serverTargetOptions);
-        this.clientRpc = blockingClientSend
-            ? new BlockingSendJsonRpc(this.clientMessageHandler)
-            : new JsonRpc(this.clientMessageHandler);
-
-        this.AddTracing();
-    }
+        => this.ReinitializeRpcWithoutListening(this.server, controlledFlushingClient, blockingClientSend, serverTargetOptions);
 
     protected void AddTracing()
     {
@@ -3553,6 +3536,33 @@ public abstract partial class JsonRpcTests : TestBase
 
         this.serverRpc.TraceSource.Listeners.Add(this.serverTraces = new CollectingTraceListener());
         this.clientRpc.TraceSource.Listeners.Add(this.clientTraces = new CollectingTraceListener());
+    }
+
+    protected void ReinitializeFlexibleRpcWithoutListening(JsonRpcTargetOptions? serverTargetOptions = null)
+        => this.ReinitializeRpcWithoutListening(
+            new FlexibleNamedArgumentTarget(),
+            controlledFlushingClient: false,
+            blockingClientSend: false,
+            serverTargetOptions ?? new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+
+    protected void ReinitializeRpcWithoutListening(object serverTarget, bool controlledFlushingClient, bool blockingClientSend, JsonRpcTargetOptions? serverTargetOptions)
+    {
+        this.clientRpc?.Dispose();
+        this.serverRpc?.Dispose();
+
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        this.serverStream = streams.Item1;
+        this.clientStream = streams.Item2;
+
+        this.InitializeFormattersAndHandlers(controlledFlushingClient);
+
+        this.serverRpc = new JsonRpc(this.serverMessageHandler);
+        this.serverRpc.AddLocalRpcTarget(serverTarget, serverTargetOptions);
+        this.clientRpc = blockingClientSend
+            ? new BlockingSendJsonRpc(this.clientMessageHandler)
+            : new JsonRpc(this.clientMessageHandler);
+
+        this.AddTracing();
     }
 
     private static void AssertExceptionEquality(Exception? expected, Exception? actual, bool compareType = true)
@@ -3689,6 +3699,27 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
+    public sealed class FlexibleNamedArgumentTarget
+    {
+        public string FlexibleNamedArguments(int number, string? text, int? nullable, int optional = 5)
+            => $"{number}:{text ?? "<null>"}:{nullable?.ToString() ?? "<null>"}:{optional}";
+
+        public string FlexibleRequiredArgument([System.ComponentModel.DataAnnotations.Required] string? value = "default")
+            => value ?? "<null>";
+
+        public string FlexibleRenamedRequiredArgument([JsonRpcParameter("wireValue"), System.ComponentModel.DataAnnotations.Required] string? value = "default")
+            => value ?? "<null>";
+
+        [JsonRpcMethod("test/MethodWithSingleObjectParameter", UseSingleObjectParameterDeserialization = true)]
+        public int MethodWithSingleObjectParameter(XAndYProperties fields) => fields.x + fields.y;
+
+        public int MethodWithProgressParameter(IProgress<int> p)
+        {
+            p.Report(1);
+            return 1;
+        }
+    }
+
     [GenerateShape(IncludeMethods = MethodShapeFlags.PublicInstance)]
     public partial class Server : BaseClass, IServerDerived
     {
@@ -3750,16 +3781,6 @@ public abstract partial class JsonRpcTests : TestBase
         public static string FlexibleNamedArguments(int number, string? text, int? nullable, int optional = 5)
         {
             return $"{number}:{text ?? "<null>"}:{nullable?.ToString() ?? "<null>"}:{optional}";
-        }
-
-        public static string FlexibleRequiredArgument([System.ComponentModel.DataAnnotations.Required] string? value = "default")
-        {
-            return value ?? "<null>";
-        }
-
-        public static string FlexibleRenamedRequiredArgument([JsonRpcParameter("wireValue"), System.ComponentModel.DataAnnotations.Required] string? value = "default")
-        {
-            return value ?? "<null>";
         }
 
         public static int MethodWithOneNonObjectParameter(int x)

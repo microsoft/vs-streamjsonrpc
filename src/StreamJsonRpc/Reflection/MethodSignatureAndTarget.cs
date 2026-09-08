@@ -142,7 +142,10 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
             result[parameterIndex] = hasInterfaceDefaultValue
                 ? new ParameterBindingInfo(isRequired, HasDefaultValue: true, interfaceDefaultValue)
-                : new ParameterBindingInfo(isRequired, implementationParameter.HasDefaultValue, implementationParameter.DefaultValue);
+                : new ParameterBindingInfo(
+                    isRequired,
+                    implementationParameter.HasDefaultValue,
+                    implementationParameter.HasDefaultValue ? implementationParameter.DefaultValue : null);
         }
 
         return (result, hasConflictingInterfaceDefaultValues);
