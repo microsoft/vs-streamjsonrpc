@@ -258,14 +258,30 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         return result is not null ? result : ReadOnlyMemory<string?>.Empty;
     }
 
+    /// <summary>
+    /// Describes how a parameter should be bound when a named argument is omitted.
+    /// </summary>
+    /// <param name="IsRequired">A value indicating whether the parameter must be supplied.</param>
+    /// <param name="HasDefaultValue">A value indicating whether <paramref name="DefaultValue"/> should be used.</param>
+    /// <param name="DefaultValue">The effective declared default value.</param>
     internal readonly record struct ParameterBindingInfo(bool IsRequired, bool HasDefaultValue, object? DefaultValue);
 
+    /// <summary>
+    /// Wraps reflected parameter metadata with the effective required and default-value semantics for RPC binding.
+    /// </summary>
     internal sealed class EffectiveParameterInfo : ParameterInfo
     {
         private readonly ParameterInfo inner;
         private readonly bool hasDefaultValue;
         private readonly object? defaultValue;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EffectiveParameterInfo"/> class.
+        /// </summary>
+        /// <param name="inner">The reflected parameter metadata to wrap.</param>
+        /// <param name="isRequired">A value indicating whether the parameter must be supplied.</param>
+        /// <param name="hasDefaultValue">A value indicating whether <paramref name="defaultValue"/> should be used.</param>
+        /// <param name="defaultValue">The effective declared default value.</param>
         internal EffectiveParameterInfo(ParameterInfo inner, bool isRequired, bool hasDefaultValue, object? defaultValue)
         {
             this.inner = inner;
@@ -290,6 +306,9 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
         public override object? RawDefaultValue => this.defaultValue;
 
+        /// <summary>
+        /// Gets a value indicating whether the parameter must be supplied.
+        /// </summary>
         internal bool IsRequired { get; }
 
         public override object[] GetCustomAttributes(bool inherit) => this.inner.GetCustomAttributes(inherit);
