@@ -342,7 +342,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
         Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
 
         // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
-        if (!allowFlexibleNamedArgumentMatching && parameters.Length < this.ArgumentCount)
+        if ((!allowFlexibleNamedArgumentMatching || this.ArgumentNames is null) && parameters.Length < this.ArgumentCount)
         {
             return ArgumentMatchResult.ParameterArgumentCountMismatch;
         }
