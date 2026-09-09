@@ -264,7 +264,7 @@ public sealed class TargetMethod
         for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
         {
             string? parameterName = parameterNames.IsEmpty ? method.Signature.Parameters[i].Name : parameterNames[i];
-            if (parameterName is null || !argumentNames.Contains(parameterName, StringComparer.Ordinal))
+            if (parameterName is null || !argumentNames.Contains(parameterName))
             {
                 return false;
             }

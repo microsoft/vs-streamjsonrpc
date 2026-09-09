@@ -287,7 +287,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             : null;
         HashSet<MethodInfo>? methodsWithReportedDefaultValueConflicts = null;
         var resolvedMethods = new List<(string RpcMethodName, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata> Methods)>();
-        Dictionary<string, HashSet<MethodInfo>>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
+        Dictionary<string, RpcTargetMetadata.TargetMethodMetadata>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
         foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
         {
             string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
@@ -296,19 +296,19 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
             if (methodsByRpcName is not null)
             {
-                if (!methodsByRpcName.TryGetValue(rpcMethodName, out HashSet<MethodInfo>? methods))
-                {
-                    methodsByRpcName.Add(rpcMethodName, methods = []);
-                }
-
                 foreach (RpcTargetMetadata.TargetMethodMetadata method in item.Value)
                 {
-                    methods.Add(method.MethodInfo);
-                }
-
-                if (methods.Count > 1)
-                {
-                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                    if (methodsByRpcName.TryGetValue(rpcMethodName, out RpcTargetMetadata.TargetMethodMetadata? existingMethod))
+                    {
+                        if (!existingMethod.EqualSignature(method))
+                        {
+                            throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                        }
+                    }
+                    else
+                    {
+                        methodsByRpcName.Add(rpcMethodName, method);
+                    }
                 }
             }
         }

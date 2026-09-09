@@ -115,6 +115,15 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         Assert.Contains("Select", exception.Message);
     }
 
+    [Fact]
+    public void CancellationTokenOverloadsAreAllowed()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+
+        server.AddLocalRpcTarget(new CancellationTokenOverloadedTarget(), options);
+    }
+
     private RpcPair CreateContractRpcPair<TContract>(TContract target)
         where TContract : class
     {
@@ -177,6 +186,15 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
 
         [JsonRpcMethod("Select")]
         public string SelectFlexible(int value, int missing) => "flexible";
+    }
+
+    private sealed class CancellationTokenOverloadedTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int value) => "non-cancelable";
+
+        [JsonRpcMethod("Select")]
+        public string Select(int value, CancellationToken cancellationToken) => "cancelable";
     }
 
     private sealed class RpcPair : IDisposable
