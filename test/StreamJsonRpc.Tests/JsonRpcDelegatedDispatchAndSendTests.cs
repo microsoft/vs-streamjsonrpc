@@ -71,6 +71,24 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         Assert.Equal("first", result);
     }
 
+    [Fact]
+    public async Task CancellationPreferencePreservesInterleavedTargetRegistrationOrder()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        var target = new InterleavedTarget();
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithoutCancellation), target, null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedOtherTarget), new OtherTarget(), null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithCancellation), target, null);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(IInterleavedTargetWithoutCancellation.GetValue), "value");
+
+        Assert.Equal("cancelable", result);
+    }
+
 #if NET
     [Fact]
     public void AddLocalRpcTargetDoesNotInspectOverloadParameters()
@@ -144,6 +162,24 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
+#pragma warning disable SA1201 // interfaces are grouped with the test fixtures below
+    public interface IInterleavedTargetWithoutCancellation
+    {
+        Task<string> GetValue(string value);
+    }
+
+    public interface IInterleavedTargetWithCancellation
+    {
+        Task<string> GetValue(string value, CancellationToken cancellationToken);
+    }
+
+    public interface IInterleavedOtherTarget
+    {
+        Task<string> GetValue(string value);
+    }
+
+#pragma warning restore SA1201
+
     public class Server
     {
         private int callCounter = 0;
@@ -177,6 +213,18 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public class SecondTarget
     {
         public Task<string> GetTargetAsync(CancellationToken cancellationToken) => Task.FromResult("second");
+    }
+
+    public class InterleavedTarget : IInterleavedTargetWithoutCancellation, IInterleavedTargetWithCancellation
+    {
+        Task<string> IInterleavedTargetWithoutCancellation.GetValue(string value) => Task.FromResult("non-cancelable");
+
+        Task<string> IInterleavedTargetWithCancellation.GetValue(string value, CancellationToken cancellationToken) => Task.FromResult("cancelable");
+    }
+
+    public class OtherTarget : IInterleavedOtherTarget
+    {
+        Task<string> IInterleavedOtherTarget.GetValue(string value) => Task.FromResult("other");
     }
 
 #if NET

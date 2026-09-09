@@ -117,7 +117,25 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         continue;
                     }
 
-                    if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
+                    bool matches;
+                    try
+                    {
+                        matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
+                    }
+                    catch (FileNotFoundException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+                    catch (FileLoadException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+                    catch (TypeLoadException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+
+                    if (matches)
                     {
                         if (firstMatch is null)
                         {

@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
@@ -36,35 +37,36 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
-        List<List<MethodSignatureAndTarget>> targetGroups = [];
+        var targetGroups = new Dictionary<object, List<MethodSignatureAndTarget>>(ReferenceComparer.Instance);
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            List<MethodSignatureAndTarget>? targetGroup = targetGroups.FirstOrDefault(g => ReferenceEquals(g[0].Target, candidateMethod.Target));
-            if (targetGroup is null)
+            Assumes.NotNull(candidateMethod.Target);
+            if (!targetGroups.TryGetValue(candidateMethod.Target, out List<MethodSignatureAndTarget>? targetGroup))
             {
-                targetGroups.Add(targetGroup = []);
+                targetGroups.Add(candidateMethod.Target, targetGroup = []);
             }
 
             targetGroup.Add(candidateMethod);
         }
 
-        foreach (List<MethodSignatureAndTarget> targetGroup in targetGroups)
+        foreach (List<MethodSignatureAndTarget> targetGroup in targetGroups.Values)
         {
             MethodSignatureAndTarget? selectedCandidateMethod = null;
             object?[]? selectedArguments = null;
             foreach (MethodSignatureAndTarget candidateMethod in targetGroup)
             {
-                if (selectedCandidateMethod is not null &&
-                    (!candidateMethod.Signature.HasCancellationTokenParameter ||
-                     !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
-                {
-                    continue;
-                }
-
-                int parameterCount = candidateMethod.Signature.Parameters.Count;
-                object?[] argumentArray = pool.Rent(parameterCount);
+                object?[]? argumentArray = null;
                 try
                 {
+                    if (selectedCandidateMethod is not null &&
+                        (!candidateMethod.Signature.HasCancellationTokenParameter ||
+                         !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
+                    {
+                        continue;
+                    }
+
+                    int parameterCount = candidateMethod.Signature.Parameters.Count;
+                    argumentArray = pool.Rent(parameterCount);
                     Span<object?> args = argumentArray.AsSpan(0, parameterCount);
                     if (this.TryGetArguments(request, candidateMethod, args))
                     {
@@ -85,9 +87,24 @@ public sealed class TargetMethod
                     argumentDeserializationExceptions.Add(ex);
                     this.AddErrorMessage(ex.Message);
                 }
+                catch (FileNotFoundException) when (selectedCandidateMethod is not null)
+                {
+                    break;
+                }
+                catch (FileLoadException) when (selectedCandidateMethod is not null)
+                {
+                    break;
+                }
+                catch (TypeLoadException) when (selectedCandidateMethod is not null)
+                {
+                    break;
+                }
                 finally
                 {
-                    pool.Return(argumentArray, clearArray: true);
+                    if (argumentArray is not null)
+                    {
+                        pool.Return(argumentArray, clearArray: true);
+                    }
                 }
             }
 
@@ -230,5 +247,14 @@ public sealed class TargetMethod
             default:
                 return false;
         }
+    }
+
+    private sealed class ReferenceComparer : IEqualityComparer<object>
+    {
+        internal static readonly ReferenceComparer Instance = new();
+
+        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
 }
