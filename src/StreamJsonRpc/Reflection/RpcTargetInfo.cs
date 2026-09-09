@@ -109,20 +109,25 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget>? existingList))
             {
-                JsonRpcMethodAttribute? firstMatch = null;
+                MethodSignatureAndTarget? firstMatch = null;
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
                     if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
                     {
-                        firstMatch ??= entry.Attribute;
-                        if (entry.Signature.HasCancellationTokenParameter)
+                        if (firstMatch is null)
+                        {
+                            firstMatch = entry;
+                        }
+                        else if (ReferenceEquals(entry.Target, firstMatch.Target) &&
+                            entry.Signature.HasCancellationTokenParameter &&
+                            entry.Signature.EqualSignature(firstMatch.Signature))
                         {
                             return entry.Attribute;
                         }
                     }
                 }
 
-                return firstMatch;
+                return firstMatch?.Attribute;
             }
         }
 
