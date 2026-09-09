@@ -37,6 +37,12 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
     }
 
+#pragma warning disable SA1201 // StaticTarget is a test helper used by methods above and below.
+    public static class StaticTarget
+    {
+        public static string GetValue(string value) => "static:" + value;
+    }
+
     [Fact]
     public async Task DispatchRequestTargetMethod()
     {
@@ -87,6 +93,21 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         string result = await clientRpc.InvokeAsync<string>(nameof(IInterleavedTargetWithoutCancellation.GetValue), "value");
 
         Assert.Equal("cancelable", result);
+    }
+
+    [Fact]
+    public async Task DispatchesStaticLocalMethodWithNullTarget()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcMethod(typeof(StaticTarget).GetMethod(nameof(StaticTarget.GetValue))!, null, null);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(StaticTarget.GetValue), "value");
+
+        Assert.Equal("static:value", result);
     }
 
 #if NET

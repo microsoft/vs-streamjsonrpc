@@ -109,54 +109,72 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget>? existingList))
             {
-                MethodSignatureAndTarget? firstMatch = null;
+                var targets = new List<object?>();
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
-                    if (firstMatch is not null && !ReferenceEquals(entry.Target, firstMatch.Target))
+                    if (targets.Any(t => ReferenceEquals(t, entry.Target)))
                     {
                         continue;
                     }
 
-                    bool matches;
-                    try
+                    targets.Add(entry.Target);
+                }
+
+                foreach (object? target in targets)
+                {
+                    MethodSignatureAndTarget? firstMatch = null;
+                    foreach (MethodSignatureAndTarget entry in existingList)
                     {
-                        matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
-                    }
-                    catch (FileNotFoundException) when (firstMatch is not null)
-                    {
-                        return firstMatch.Attribute;
-                    }
-                    catch (FileLoadException) when (firstMatch is not null)
-                    {
-                        return firstMatch.Attribute;
-                    }
-                    catch (TypeLoadException) when (firstMatch is not null)
-                    {
-                        return firstMatch.Attribute;
+                        if (!ReferenceEquals(entry.Target, target))
+                        {
+                            continue;
+                        }
+
+                        bool matches;
+                        try
+                        {
+                            matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
+                        }
+                        catch (FileNotFoundException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+                        catch (FileLoadException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+                        catch (TypeLoadException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+
+                        if (matches)
+                        {
+                            if (firstMatch is null)
+                            {
+                                firstMatch = entry;
+                            }
+                            else if (!firstMatch.Signature.HasCancellationTokenParameter &&
+                                entry.Signature.HasCancellationTokenParameter &&
+                                entry.Signature.EqualSignature(firstMatch.Signature))
+                            {
+                                return entry.Attribute;
+                            }
+
+                            if (firstMatch.Signature.HasCancellationTokenParameter)
+                            {
+                                return firstMatch.Attribute;
+                            }
+                        }
                     }
 
-                    if (matches)
-                    {
-                        if (firstMatch is null)
-                        {
-                            firstMatch = entry;
-                        }
-                        else if (!firstMatch.Signature.HasCancellationTokenParameter &&
-                            ReferenceEquals(entry.Target, firstMatch.Target) &&
-                            entry.Signature.HasCancellationTokenParameter &&
-                            entry.Signature.EqualSignature(firstMatch.Signature))
-                        {
-                            return entry.Attribute;
-                        }
-                    }
-
-                    if (firstMatch?.Signature.HasCancellationTokenParameter == true)
+                    if (firstMatch is not null)
                     {
                         return firstMatch.Attribute;
                     }
                 }
 
-                return firstMatch?.Attribute;
+                return null;
             }
         }
 

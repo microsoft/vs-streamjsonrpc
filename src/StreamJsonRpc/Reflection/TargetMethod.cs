@@ -38,18 +38,20 @@ public sealed class TargetMethod
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
         var targetGroups = new Dictionary<object, List<MethodSignatureAndTarget>>(ReferenceComparer.Instance);
+        var orderedTargetGroups = new List<List<MethodSignatureAndTarget>>();
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            Assumes.NotNull(candidateMethod.Target);
-            if (!targetGroups.TryGetValue(candidateMethod.Target, out List<MethodSignatureAndTarget>? targetGroup))
+            object targetKey = candidateMethod.Target ?? NullTarget.Instance;
+            if (!targetGroups.TryGetValue(targetKey, out List<MethodSignatureAndTarget>? targetGroup))
             {
-                targetGroups.Add(candidateMethod.Target, targetGroup = []);
+                targetGroups.Add(targetKey, targetGroup = []);
+                orderedTargetGroups.Add(targetGroup);
             }
 
             targetGroup.Add(candidateMethod);
         }
 
-        foreach (List<MethodSignatureAndTarget> targetGroup in targetGroups.Values)
+        foreach (List<MethodSignatureAndTarget> targetGroup in orderedTargetGroups)
         {
             MethodSignatureAndTarget? selectedCandidateMethod = null;
             object?[]? selectedArguments = null;
@@ -256,5 +258,10 @@ public sealed class TargetMethod
         public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
 
         public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
+    }
+
+    private sealed class NullTarget
+    {
+        internal static readonly object Instance = new();
     }
 }
