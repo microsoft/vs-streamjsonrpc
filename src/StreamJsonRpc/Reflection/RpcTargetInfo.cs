@@ -107,6 +107,13 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
         => this.GetJsonRpcMethodAttribute(methodName, parameters, request: null);
 
+    /// <summary>
+    /// Gets the method attribute for the candidate that best matches the incoming request.
+    /// </summary>
+    /// <param name="methodName">The RPC method name.</param>
+    /// <param name="parameters">The parameters currently being considered by the formatter.</param>
+    /// <param name="request">The incoming request, used to account for effective parameter names.</param>
+    /// <returns>The applicable method attribute, if one was found.</returns>
     internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters, JsonRpcRequest? request)
     {
         lock (this.SyncObject)
@@ -132,11 +139,6 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     MethodSignatureAndTarget? firstMatch = null;
                     foreach (MethodSignatureAndTarget entry in targetGroup)
                     {
-                        if (request is not null && !entry.MatchesRequestShape(request))
-                        {
-                            continue;
-                        }
-
                         bool matches;
                         try
                         {
@@ -157,6 +159,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
                         if (matches)
                         {
+                            if (request is not null && !entry.MatchesRequestShape(request))
+                            {
+                                continue;
+                            }
+
                             if (firstMatch is null)
                             {
                                 firstMatch = entry;

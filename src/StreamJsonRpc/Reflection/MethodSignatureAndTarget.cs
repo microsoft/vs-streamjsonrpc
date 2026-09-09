@@ -63,14 +63,46 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     /// <inheritdoc/>
     public override string ToString() => $"{this.Signature} ({this.Target})";
 
+    /// <summary>
+    /// Determines whether the request has the shape expected by this method without invoking formatter deserialization.
+    /// </summary>
+    /// <param name="request">The request to inspect.</param>
+    /// <returns><see langword="true"/> if the request can match this method's effective parameter names.</returns>
     internal bool MatchesRequestShape(JsonRpcRequest request)
     {
         ReadOnlySpan<ParameterInfo> parameters = this.Signature.ParametersMemory.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+        if (this.Attribute?.UseSingleObjectParameterDeserialization == true && parameters.Length == 1 && request.NamedArguments is not null)
+        {
+            return true;
+        }
+
+        if (request.NamedArguments is not null)
+        {
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null || !request.NamedArguments.ContainsKey(parameterName))
+                {
+                    return false;
+                }
+            }
+
+            return request.NamedArguments.Count <= parameters.Length;
+        }
+
+        if (request.ArgumentsList is null)
+        {
+            return parameters.Length == 0;
+        }
+
+        if (request.ArgumentsList.Count > parameters.Length)
+        {
+            return false;
+        }
+
         for (int i = 0; i < parameters.Length; i++)
         {
-            string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
-            if (!request.TryGetArgumentByNameOrIndex(parameterName, i, typeHint: null, out _)
-                && !parameters[i].HasDefaultValue)
+            if (i >= request.ArgumentsList.Count && !parameters[i].HasDefaultValue)
             {
                 return false;
             }
