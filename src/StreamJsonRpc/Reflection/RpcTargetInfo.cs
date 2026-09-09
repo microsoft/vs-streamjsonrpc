@@ -341,7 +341,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         this.TraceSource.TraceEvent(
                             TraceEventType.Warning,
                             (int)JsonRpc.TraceEvents.ConflictingParameterDefaultValues,
-                            "RPC target method {0} implements interface methods with conflicting parameter default values. Default values declared on {0} will be used.",
+                            "RPC target method {0} implements interface methods with conflicting parameter default values. Its declared default values will be used.",
                             newMethod.MethodInfo);
                     }
 

@@ -251,23 +251,19 @@ public sealed class TargetMethod
 
         bool allArgumentsMatchParameters = this.AllArgumentsMatchParameters(method, argumentNames);
         return method.AllowFlexibleNamedArgumentMatching
-            ? !allArgumentsMatchParameters || !this.HasAllRequiredArguments(method, argumentNames)
+            ? !allArgumentsMatchParameters || !this.HasAllArguments(method, argumentNames)
             : !allArgumentsMatchParameters && this.HasDefaultValue(method);
     }
 
-    private bool HasAllRequiredArguments(MethodSignatureAndTarget method, IEnumerable<string> argumentNames)
+    private bool HasAllArguments(MethodSignatureAndTarget method, IEnumerable<string> argumentNames)
     {
-        ReadOnlySpan<MethodSignatureAndTarget.ParameterBindingInfo> parameterBindingInfo = method.ParameterBindings;
         ReadOnlySpan<string?> parameterNames = method.ParameterNamesExcludingCancellationToken;
         for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
         {
-            if (parameterBindingInfo[i].IsRequired)
+            string? parameterName = parameterNames.IsEmpty ? method.Signature.Parameters[i].Name : parameterNames[i];
+            if (parameterName is null || !argumentNames.Contains(parameterName, StringComparer.Ordinal))
             {
-                string? parameterName = parameterNames.IsEmpty ? method.Signature.Parameters[i].Name : parameterNames[i];
-                if (parameterName is null || !argumentNames.Contains(parameterName, StringComparer.Ordinal))
-                {
-                    return false;
-                }
+                return false;
             }
         }
 

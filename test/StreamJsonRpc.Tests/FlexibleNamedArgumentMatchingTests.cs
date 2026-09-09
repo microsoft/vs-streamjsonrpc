@@ -46,7 +46,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         using RpcPair rpc = this.CreateContractRpcPair<IInterfaceDefaultTarget>(new InterfaceDefaultTarget());
         int result = await rpc.Client.InvokeWithParameterObjectAsync<int>(
             nameof(IInterfaceDefaultTarget.GetValue),
-            NamedArgs.Create(new { unknown = true }),
+            NamedArgs.Create(new { }),
             this.TimeoutToken);
 
         Assert.Equal(7, result);
