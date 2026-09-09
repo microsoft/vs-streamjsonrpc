@@ -118,7 +118,8 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         {
                             firstMatch = entry;
                         }
-                        else if (ReferenceEquals(entry.Target, firstMatch.Target) &&
+                        else if (!firstMatch.Signature.HasCancellationTokenParameter &&
+                            ReferenceEquals(entry.Target, firstMatch.Target) &&
                             entry.Signature.HasCancellationTokenParameter &&
                             entry.Signature.EqualSignature(firstMatch.Signature))
                         {
