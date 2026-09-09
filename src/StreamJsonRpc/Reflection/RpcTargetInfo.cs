@@ -112,6 +112,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 MethodSignatureAndTarget? firstMatch = null;
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
+                    if (firstMatch is not null && !ReferenceEquals(entry.Target, firstMatch.Target))
+                    {
+                        continue;
+                    }
+
                     if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
                     {
                         if (firstMatch is null)
@@ -125,6 +130,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         {
                             return entry.Attribute;
                         }
+                    }
+
+                    if (firstMatch?.Signature.HasCancellationTokenParameter == true)
+                    {
+                        return firstMatch.Attribute;
                     }
                 }
 
