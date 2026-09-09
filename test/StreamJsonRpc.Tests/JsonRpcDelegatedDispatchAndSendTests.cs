@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+using StreamJsonRpc.Tests;
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 {
@@ -67,6 +68,18 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 
         Assert.Equal("first", result);
     }
+
+#if NET
+    [Fact]
+    public void AddLocalRpcTargetDoesNotInspectOverloadParameters()
+    {
+        UnreachableAssemblyTools.VerifyUnreachableAssembly();
+
+        using var rpc = new JsonRpc(Stream.Null);
+        rpc.AddLocalRpcTarget(new TargetWithUnreachableParameterTypes());
+    }
+
+#endif
 
     [Fact]
     public async Task RegisteringSameTargetTypeRetainsDistinctTargets()
@@ -163,6 +176,20 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     {
         public Task<string> GetTargetAsync(CancellationToken cancellationToken) => Task.FromResult("second");
     }
+
+#if NET
+    public class TargetWithUnreachableParameterTypes
+    {
+        public void Method(UnreachableAssembly.SomeUnreachableClass value)
+        {
+        }
+
+        public void Method(UnreachableAssembly.SomeUnreachableClass value, string other)
+        {
+        }
+    }
+
+#endif
 
     public class RepeatedTarget
     {

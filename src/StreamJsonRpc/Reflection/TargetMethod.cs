@@ -36,8 +36,21 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
+        MethodSignatureAndTarget? selectedCandidateMethod = null;
+        object?[]? selectedArguments = null;
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
+            if (selectedCandidateMethod is not null && !ReferenceEquals(candidateMethod.Target, selectedCandidateMethod.Target))
+            {
+                break;
+            }
+
+            if (selectedCandidateMethod is not null &&
+                (!candidateMethod.Signature.HasCancellationTokenParameter || !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
+            {
+                continue;
+            }
+
             int parameterCount = candidateMethod.Signature.Parameters.Count;
             object?[] argumentArray = pool.Rent(parameterCount);
             try
@@ -45,11 +58,15 @@ public sealed class TargetMethod
                 Span<object?> args = argumentArray.AsSpan(0, parameterCount);
                 if (this.TryGetArguments(request, candidateMethod, args))
                 {
-                    this.synchronizationContext = candidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
-                    this.target = candidateMethod.Target;
-                    this.signature = candidateMethod.Signature;
-                    this.arguments = args.ToArray();
-                    break;
+                    if (candidateMethod.Signature.HasCancellationTokenParameter)
+                    {
+                        selectedCandidateMethod = candidateMethod;
+                        selectedArguments = args.ToArray();
+                        break;
+                    }
+
+                    selectedCandidateMethod ??= candidateMethod;
+                    selectedArguments ??= args.ToArray();
                 }
             }
             catch (RpcArgumentDeserializationException ex)
@@ -62,6 +79,14 @@ public sealed class TargetMethod
             {
                 pool.Return(argumentArray, clearArray: true);
             }
+        }
+
+        if (selectedCandidateMethod is not null)
+        {
+            this.synchronizationContext = selectedCandidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
+            this.target = selectedCandidateMethod.Target;
+            this.signature = selectedCandidateMethod.Signature;
+            this.arguments = selectedArguments;
         }
 
         if (argumentDeserializationExceptions is object)
