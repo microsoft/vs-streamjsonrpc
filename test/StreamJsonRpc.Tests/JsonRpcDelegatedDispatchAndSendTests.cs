@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+#if NET
 using StreamJsonRpc.Tests;
+#endif
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 {

@@ -40,13 +40,10 @@ public sealed class TargetMethod
         object?[]? selectedArguments = null;
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            if (selectedCandidateMethod is not null && !ReferenceEquals(candidateMethod.Target, selectedCandidateMethod.Target))
-            {
-                break;
-            }
-
             if (selectedCandidateMethod is not null &&
-                (!candidateMethod.Signature.HasCancellationTokenParameter || !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
+                (!ReferenceEquals(candidateMethod.Target, selectedCandidateMethod.Target) ||
+                 !candidateMethod.Signature.HasCancellationTokenParameter ||
+                 !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
             {
                 continue;
             }
