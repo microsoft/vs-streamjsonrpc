@@ -191,9 +191,7 @@ public sealed class TargetMethod
         }
         else
         {
-            if (method.AllowFlexibleNamedArgumentMatching &&
-                request.ArgumentNames is IEnumerable<string> argumentNames &&
-                (!this.HasAllRequiredArguments(method, argumentNames) || !this.AllArgumentsMatchParameters(method, argumentNames)))
+            if (this.NamedArgumentsPreventStrictMatch(method, request))
             {
                 argumentMatch = JsonRpcRequest.ArgumentMatchResult.MissingArgument;
             }
@@ -228,6 +226,33 @@ public sealed class TargetMethod
             default:
                 return false;
         }
+    }
+
+    private bool HasDefaultValue(MethodSignatureAndTarget method)
+    {
+        for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
+        {
+            if (method.Signature.Parameters[i].HasDefaultValue)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool NamedArgumentsPreventStrictMatch(MethodSignatureAndTarget method, JsonRpcRequest request)
+    {
+        if (method.Attribute?.UseSingleObjectParameterDeserialization is true ||
+            request.ArgumentNames is not IEnumerable<string> argumentNames)
+        {
+            return false;
+        }
+
+        bool allArgumentsMatchParameters = this.AllArgumentsMatchParameters(method, argumentNames);
+        return method.AllowFlexibleNamedArgumentMatching
+            ? !allArgumentsMatchParameters || !this.HasAllRequiredArguments(method, argumentNames)
+            : !allArgumentsMatchParameters && this.HasDefaultValue(method);
     }
 
     private bool HasAllRequiredArguments(MethodSignatureAndTarget method, IEnumerable<string> argumentNames)

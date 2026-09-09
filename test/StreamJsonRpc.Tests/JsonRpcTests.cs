@@ -1432,6 +1432,15 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task FlexibleNamedArguments_StrictMatchingRejectsUnknownArgumentInPlaceOfOptionalParameter()
+    {
+        await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync<int>(
+            nameof(Server.MethodWithOnlyOptionalParameter),
+            NamedArgs.Create(new { unknown = true }),
+            this.TimeoutToken));
+    }
+
+    [Fact]
     public async Task FlexibleNamedArguments_DoesNotApplyToPositionalArguments()
     {
         this.ReinitializeFlexibleRpcWithoutListening();
@@ -3777,6 +3786,8 @@ public abstract partial class JsonRpcTests : TestBase
         {
             return x + y;
         }
+
+        public static int MethodWithOnlyOptionalParameter(int value = 5) => value;
 
         public static string FlexibleNamedArguments(int number, string? text, int? nullable, int optional = 5)
         {
