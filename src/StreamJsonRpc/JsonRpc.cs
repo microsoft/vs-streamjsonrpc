@@ -1064,12 +1064,20 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <inheritdoc cref="AddLocalRpcMethod(MethodInfo, object?, JsonRpcMethodAttribute?, SynchronizationContext?)"/>
     public void AddLocalRpcMethod(MethodInfo handler, object? target, JsonRpcMethodAttribute? methodRpcSettings) => this.AddLocalRpcMethod(handler, target, methodRpcSettings, synchronizationContext: null);
 
+#pragma warning disable SA1202 // Internal formatter hook must be adjacent to its public counterpart.
+    internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(JsonRpcRequest request, ReadOnlySpan<ParameterInfo> parameters)
+    {
+        Requires.NotNull(request);
+        return this.rpcTargetInfo.GetJsonRpcMethodAttribute(request.Method!, parameters, request);
+    }
+
     /// <inheritdoc cref="RpcTargetInfo.GetJsonRpcMethodAttribute(string, ReadOnlySpan{ParameterInfo})"/>
     public JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
     {
         Requires.NotNull(methodName, nameof(methodName));
         return this.rpcTargetInfo.GetJsonRpcMethodAttribute(methodName, parameters);
     }
+#pragma warning restore SA1202
 
     /// <summary>
     /// Starts listening to incoming messages.

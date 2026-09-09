@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using StreamJsonRpc.Protocol;
 
@@ -104,28 +105,34 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// Note this list may omit some special parameters such as a trailing <see cref="CancellationToken"/>.
     /// </param>
     internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
+        => this.GetJsonRpcMethodAttribute(methodName, parameters, request: null);
+
+    internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters, JsonRpcRequest? request)
     {
         lock (this.SyncObject)
         {
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget>? existingList))
             {
-                var targets = new List<object?>();
+                var targetGroups = new Dictionary<object, List<MethodSignatureAndTarget>>(ReferenceComparer.Instance);
+                var orderedTargetGroups = new List<List<MethodSignatureAndTarget>>();
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
-                    if (targets.Any(t => ReferenceEquals(t, entry.Target)))
+                    object targetKey = entry.Target ?? NullTarget.Instance;
+                    if (!targetGroups.TryGetValue(targetKey, out List<MethodSignatureAndTarget>? targetGroup))
                     {
-                        continue;
+                        targetGroups.Add(targetKey, targetGroup = []);
+                        orderedTargetGroups.Add(targetGroup);
                     }
 
-                    targets.Add(entry.Target);
+                    targetGroup.Add(entry);
                 }
 
-                foreach (object? target in targets)
+                foreach (List<MethodSignatureAndTarget> targetGroup in orderedTargetGroups)
                 {
                     MethodSignatureAndTarget? firstMatch = null;
-                    foreach (MethodSignatureAndTarget entry in existingList)
+                    foreach (MethodSignatureAndTarget entry in targetGroup)
                     {
-                        if (!ReferenceEquals(entry.Target, target))
+                        if (request is not null && !entry.MatchesRequestShape(request))
                         {
                             continue;
                         }
@@ -497,5 +504,19 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             this.removeEventHandler(this.server, this.registeredHandler);
         }
+    }
+
+    private sealed class NullTarget
+    {
+        internal static readonly object Instance = new();
+    }
+
+    private sealed class ReferenceComparer : IEqualityComparer<object>
+    {
+        internal static readonly ReferenceComparer Instance = new();
+
+        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
 }

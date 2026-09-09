@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
@@ -61,6 +62,22 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
     /// <inheritdoc/>
     public override string ToString() => $"{this.Signature} ({this.Target})";
+
+    internal bool MatchesRequestShape(JsonRpcRequest request)
+    {
+        ReadOnlySpan<ParameterInfo> parameters = this.Signature.ParametersMemory.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
+            if (!request.TryGetArgumentByNameOrIndex(parameterName, i, typeHint: null, out _)
+                && !parameters[i].HasDefaultValue)
+            {
+                return false;
+            }
+        }
+
+        return request.ArgumentCount <= parameters.Length;
+    }
 
     /// <summary>
     /// Gets the RPC parameter names for a method, excluding any <see cref="CancellationToken"/> parameter.
