@@ -249,13 +249,16 @@ public sealed class TargetMethod
             return false;
         }
 
-        bool allArgumentsMatchParameters = this.AllArgumentsMatchParameters(method, argumentNames);
-        return method.AllowFlexibleNamedArgumentMatching
-            ? !allArgumentsMatchParameters || !this.HasAllArguments(method, argumentNames)
-            : !allArgumentsMatchParameters && this.HasDefaultValue(method);
+        if (method.AllowFlexibleNamedArgumentMatching)
+        {
+            var argumentNameSet = new HashSet<string>(argumentNames, StringComparer.Ordinal);
+            return !this.AllArgumentsMatchParameters(method, argumentNameSet) || !this.HasAllArguments(method, argumentNameSet);
+        }
+
+        return !this.AllArgumentsMatchParameters(method, argumentNames) && this.HasDefaultValue(method);
     }
 
-    private bool HasAllArguments(MethodSignatureAndTarget method, IEnumerable<string> argumentNames)
+    private bool HasAllArguments(MethodSignatureAndTarget method, HashSet<string> argumentNames)
     {
         ReadOnlySpan<string?> parameterNames = method.ParameterNamesExcludingCancellationToken;
         for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
