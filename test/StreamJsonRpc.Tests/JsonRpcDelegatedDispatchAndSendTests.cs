@@ -96,6 +96,21 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
     [Fact]
+    public async Task DispatchRequestAllowsOmittedOptionalNamedParameterBeforeEquivalentCancellationOverload()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcTarget(new OptionalParameterTarget());
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeWithParameterObjectAsync<string>(nameof(OptionalParameterTarget.GetValue), new { }, this.TimeoutToken);
+
+        Assert.Equal("default", result);
+    }
+
+    [Fact]
     public async Task DispatchesStaticLocalMethodWithNullTarget()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -261,6 +276,13 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
 #endif
+
+    public class OptionalParameterTarget
+    {
+        public string GetValue(string value = "default") => value;
+
+        public string GetValue(string value, CancellationToken cancellationToken) => "cancelable:" + value;
+    }
 
     public class RepeatedTarget
     {

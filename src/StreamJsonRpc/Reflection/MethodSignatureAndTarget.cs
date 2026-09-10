@@ -71,44 +71,46 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     internal bool MatchesRequestShape(JsonRpcRequest request)
     {
         ReadOnlySpan<ParameterInfo> parameters = this.Signature.ParametersMemory.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
-        if (this.Attribute?.UseSingleObjectParameterDeserialization == true && parameters.Length == 1 && request.NamedArguments is not null)
+        if (this.Attribute?.UseSingleObjectParameterDeserialization == true && parameters.Length == 1 && request.ArgumentNames is not null)
         {
             return true;
         }
 
-        if (request.NamedArguments is not null)
+        if (request.ArgumentNames is not null)
         {
+            HashSet<string> suppliedParameterNames = new(request.ArgumentNames, StringComparer.Ordinal);
             for (int i = 0; i < parameters.Length; i++)
             {
-                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
-                if (parameterName is null || !request.NamedArguments.ContainsKey(parameterName))
+                ParameterInfo parameter = parameters[i];
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameter.Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null)
+                {
+                    return false;
+                }
+
+                if (!suppliedParameterNames.Contains(parameterName) && !parameter.HasDefaultValue)
                 {
                     return false;
                 }
             }
 
-            return request.NamedArguments.Count <= parameters.Length;
+            return suppliedParameterNames.Count <= parameters.Length;
         }
 
-        if (request.ArgumentsList is null)
-        {
-            return parameters.Length == 0;
-        }
-
-        if (request.ArgumentsList.Count > parameters.Length)
+        if (request.ArgumentCount > parameters.Length)
         {
             return false;
         }
 
         for (int i = 0; i < parameters.Length; i++)
         {
-            if (i >= request.ArgumentsList.Count && !parameters[i].HasDefaultValue)
+            if (i >= request.ArgumentCount && !parameters[i].HasDefaultValue)
             {
                 return false;
             }
         }
 
-        return request.ArgumentCount <= parameters.Length;
+        return true;
     }
 
     /// <summary>
