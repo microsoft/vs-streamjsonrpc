@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using Microsoft.VisualStudio.Threading;
+#if NET
+using StreamJsonRpc.Tests;
+#endif
 
 public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 {
@@ -32,6 +35,12 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     {
         await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
         Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
+    }
+
+#pragma warning disable SA1201 // StaticTarget is a test helper used by methods above and below.
+    public static class StaticTarget
+    {
+        public static string GetValue(string value) => "static:" + value;
     }
 
     [Fact]
@@ -67,6 +76,66 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
 
         Assert.Equal("first", result);
     }
+
+    [Fact]
+    public async Task CancellationPreferencePreservesInterleavedTargetRegistrationOrder()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        var target = new InterleavedTarget();
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithoutCancellation), target, null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedOtherTarget), new OtherTarget(), null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithCancellation), target, null);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(IInterleavedTargetWithoutCancellation.GetValue), "value");
+
+        Assert.Equal("cancelable", result);
+    }
+
+    [Fact]
+    public async Task DispatchRequestAllowsOmittedOptionalNamedParameterBeforeEquivalentCancellationOverload()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcTarget(new OptionalParameterTarget());
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeWithParameterObjectAsync<string>(nameof(OptionalParameterTarget.GetValue), new { }, this.TimeoutToken);
+
+        Assert.Equal("default", result);
+    }
+
+    [Fact]
+    public async Task DispatchesStaticLocalMethodWithNullTarget()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        serverRpc.AddLocalRpcMethod(typeof(StaticTarget).GetMethod(nameof(StaticTarget.GetValue))!, null, null);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(StaticTarget.GetValue), "value");
+
+        Assert.Equal("static:value", result);
+    }
+
+#if NET
+    [Fact]
+    public void AddLocalRpcTargetDoesNotInspectOverloadParameters()
+    {
+        UnreachableAssemblyTools.VerifyUnreachableAssembly();
+
+        using var rpc = new JsonRpc(Stream.Null);
+        rpc.AddLocalRpcTarget(new TargetWithUnreachableParameterTypes());
+    }
+
+#endif
 
     [Fact]
     public async Task RegisteringSameTargetTypeRetainsDistinctTargets()
@@ -129,6 +198,24 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
 #pragma warning disable CA1801 // use all parameters
+#pragma warning disable SA1201 // interfaces are grouped with the test fixtures below
+    public interface IInterleavedTargetWithoutCancellation
+    {
+        Task<string> GetValue(string value);
+    }
+
+    public interface IInterleavedTargetWithCancellation
+    {
+        Task<string> GetValue(string value, CancellationToken cancellationToken);
+    }
+
+    public interface IInterleavedOtherTarget
+    {
+        Task<string> GetValue(string value);
+    }
+
+#pragma warning restore SA1201
+
     public class Server
     {
         private int callCounter = 0;
@@ -162,6 +249,39 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public class SecondTarget
     {
         public Task<string> GetTargetAsync(CancellationToken cancellationToken) => Task.FromResult("second");
+    }
+
+    public class InterleavedTarget : IInterleavedTargetWithoutCancellation, IInterleavedTargetWithCancellation
+    {
+        Task<string> IInterleavedTargetWithoutCancellation.GetValue(string value) => Task.FromResult("non-cancelable");
+
+        Task<string> IInterleavedTargetWithCancellation.GetValue(string value, CancellationToken cancellationToken) => Task.FromResult("cancelable");
+    }
+
+    public class OtherTarget : IInterleavedOtherTarget
+    {
+        Task<string> IInterleavedOtherTarget.GetValue(string value) => Task.FromResult("other");
+    }
+
+#if NET
+    public class TargetWithUnreachableParameterTypes
+    {
+        public void Method(UnreachableAssembly.SomeUnreachableClass value)
+        {
+        }
+
+        public void Method(UnreachableAssembly.SomeUnreachableClass value, string other)
+        {
+        }
+    }
+
+#endif
+
+    public class OptionalParameterTarget
+    {
+        public string GetValue(string value = "default") => value;
+
+        public string GetValue(string value, CancellationToken cancellationToken) => "cancelable:" + value;
     }
 
     public class RepeatedTarget

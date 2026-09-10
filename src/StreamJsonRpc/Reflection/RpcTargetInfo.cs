@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using StreamJsonRpc.Protocol;
 
@@ -104,18 +105,90 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// Note this list may omit some special parameters such as a trailing <see cref="CancellationToken"/>.
     /// </param>
     internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
+        => this.GetJsonRpcMethodAttribute(methodName, parameters, request: null);
+
+    /// <summary>
+    /// Gets the method attribute for the candidate that best matches the incoming request.
+    /// </summary>
+    /// <param name="methodName">The RPC method name.</param>
+    /// <param name="parameters">The parameters currently being considered by the formatter.</param>
+    /// <param name="request">The incoming request, used to account for effective parameter names.</param>
+    /// <returns>The applicable method attribute, if one was found.</returns>
+    internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters, JsonRpcRequest? request)
     {
         lock (this.SyncObject)
         {
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget>? existingList))
             {
+                var targetGroups = new Dictionary<object, List<MethodSignatureAndTarget>>(ReferenceComparer.Instance);
+                var orderedTargetGroups = new List<List<MethodSignatureAndTarget>>();
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
-                    if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
+                    object targetKey = entry.Target ?? NullTarget.Instance;
+                    if (!targetGroups.TryGetValue(targetKey, out List<MethodSignatureAndTarget>? targetGroup))
                     {
-                        return entry.Attribute;
+                        targetGroups.Add(targetKey, targetGroup = []);
+                        orderedTargetGroups.Add(targetGroup);
+                    }
+
+                    targetGroup.Add(entry);
+                }
+
+                foreach (List<MethodSignatureAndTarget> targetGroup in orderedTargetGroups)
+                {
+                    MethodSignatureAndTarget? firstMatch = null;
+                    foreach (MethodSignatureAndTarget entry in targetGroup)
+                    {
+                        bool matches;
+                        try
+                        {
+                            matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
+                        }
+                        catch (FileNotFoundException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+                        catch (FileLoadException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+                        catch (TypeLoadException) when (firstMatch is not null)
+                        {
+                            return firstMatch.Attribute;
+                        }
+
+                        if (matches)
+                        {
+                            if (request is not null && !entry.MatchesRequestShape(request))
+                            {
+                                continue;
+                            }
+
+                            if (firstMatch is null)
+                            {
+                                firstMatch = entry;
+                            }
+                            else if (!firstMatch.Signature.HasCancellationTokenParameter &&
+                                entry.Signature.HasCancellationTokenParameter &&
+                                entry.Signature.EqualSignature(firstMatch.Signature))
+                            {
+                                return entry.Attribute;
+                            }
+
+                            if (firstMatch.Signature.HasCancellationTokenParameter)
+                            {
+                                return firstMatch.Attribute;
+                            }
+                        }
+                    }
+
+                    if (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
                     }
                 }
+
+                return null;
             }
         }
 
@@ -307,7 +380,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     {
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                        AddMethodWithCancellationPreference(existingList!, signatureAndTarget);
+                        existingList!.Add(signatureAndTarget);
                     }
                     else
                     {
@@ -319,24 +392,6 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
             }
         }
-    }
-
-    private static void AddMethodWithCancellationPreference(List<MethodSignatureAndTarget> methods, MethodSignatureAndTarget method)
-    {
-        if (method.Signature.HasCancellationTokenParameter)
-        {
-            int equivalentNonCancelableMethodIndex = methods.FindIndex(candidate =>
-                ReferenceEquals(candidate.Target, method.Target) &&
-                !candidate.Signature.HasCancellationTokenParameter &&
-                candidate.Signature.EqualSignature(method.Signature));
-            if (equivalentNonCancelableMethodIndex >= 0)
-            {
-                methods.Insert(equivalentNonCancelableMethodIndex, method);
-                return;
-            }
-        }
-
-        methods.Add(method);
     }
 
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
@@ -456,5 +511,19 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             this.removeEventHandler(this.server, this.registeredHandler);
         }
+    }
+
+    private sealed class NullTarget
+    {
+        internal static readonly object Instance = new();
+    }
+
+    private sealed class ReferenceComparer : IEqualityComparer<object>
+    {
+        internal static readonly ReferenceComparer Instance = new();
+
+        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
 }
