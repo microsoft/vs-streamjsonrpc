@@ -141,6 +141,9 @@
   <data name="ConflictMethodSignatureAlreadyRegistered" xml:space="preserve">
     <value>A method with the same name and equivalent parameters has already been registered.</value>
   </data>
+  <data name="FlexibleNamedArgumentMatchingDoesNotSupportOverloads" xml:space="preserve">
+    <value>Flexible named argument matching cannot be enabled because multiple target methods resolve to the RPC method name "{0}".</value>
+  </data>
   <data name="ConnectionDropped" xml:space="preserve">
     <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>
   </data>
