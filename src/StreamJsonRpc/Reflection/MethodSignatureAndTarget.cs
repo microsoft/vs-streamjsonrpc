@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
@@ -61,6 +62,56 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
     /// <inheritdoc/>
     public override string ToString() => $"{this.Signature} ({this.Target})";
+
+    /// <summary>
+    /// Determines whether the request has the shape expected by this method without invoking formatter deserialization.
+    /// </summary>
+    /// <param name="request">The request to inspect.</param>
+    /// <returns><see langword="true"/> if the request can match this method's effective parameter names.</returns>
+    internal bool MatchesRequestShape(JsonRpcRequest request)
+    {
+        ReadOnlySpan<ParameterInfo> parameters = this.Signature.ParametersMemory.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+        if (this.Attribute?.UseSingleObjectParameterDeserialization == true && parameters.Length == 1 && request.ArgumentNames is not null)
+        {
+            return true;
+        }
+
+        if (request.ArgumentNames is not null)
+        {
+            HashSet<string> suppliedParameterNames = new(request.ArgumentNames, StringComparer.Ordinal);
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                ParameterInfo parameter = parameters[i];
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameter.Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null)
+                {
+                    return false;
+                }
+
+                if (!suppliedParameterNames.Contains(parameterName) && !parameter.HasDefaultValue)
+                {
+                    return false;
+                }
+            }
+
+            return suppliedParameterNames.Count <= parameters.Length;
+        }
+
+        if (request.ArgumentCount > parameters.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            if (i >= request.ArgumentCount && !parameters[i].HasDefaultValue)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <summary>
     /// Gets the RPC parameter names for a method, excluding any <see cref="CancellationToken"/> parameter.
