@@ -100,6 +100,10 @@ public class JsonRpcTargetOptions
     /// because flexible argument matching cannot reliably disambiguate overloads. A pair that differs only by a trailing
     /// <see cref="CancellationToken"/> is allowed because it has one wire signature.
     /// </para>
+    /// <para>
+    /// Each target method must also have unique RPC parameter names after applying <see cref="ParameterNameTransform"/>
+    /// and any <see cref="JsonRpcParameterAttribute"/> annotations.
+    /// </para>
     /// </remarks>
     public bool AllowFlexibleNamedArgumentMatching { get; set; }
 

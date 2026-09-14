@@ -310,6 +310,11 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             {
                 foreach (MethodSignatureAndTarget method in methods)
                 {
+                    if (!HasUniqueParameterNames(method))
+                    {
+                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, rpcMethodName), nameof(options));
+                    }
+
                     if (methodsByRpcName.TryGetValue(rpcMethodName, out MethodSignatureAndTarget? existingMethod))
                     {
                         if (!CanShareFlexibleRpcName(existingMethod, method))
@@ -405,6 +410,22 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             string? firstName = firstNames.IsEmpty ? first.Signature.Parameters[i].Name : firstNames[i];
             string? secondName = secondNames.IsEmpty ? second.Signature.Parameters[i].Name : secondNames[i];
             if (!StringComparer.Ordinal.Equals(firstName, secondName))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasUniqueParameterNames(MethodSignatureAndTarget method)
+    {
+        ReadOnlySpan<string?> effectiveNames = method.ParameterNamesExcludingCancellationToken;
+        var uniqueNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
+        {
+            string? name = effectiveNames.IsEmpty ? method.Signature.Parameters[i].Name : effectiveNames[i];
+            if (name is null || !uniqueNames.Add(name))
             {
                 return false;
             }

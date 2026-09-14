@@ -169,6 +169,34 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void DuplicateTransformedParameterNamesAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions
+        {
+            AllowFlexibleNamedArgumentMatching = true,
+            ParameterNameTransform = _ => "value",
+        };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new TwoParameterTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains(nameof(TwoParameterTarget.Select), exception.Message);
+    }
+
+    [Fact]
+    public void DuplicateAttributedParameterNamesAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new DuplicateAttributedParameterTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains(nameof(DuplicateAttributedParameterTarget.Select), exception.Message);
+    }
+
+    [Fact]
     public void OverloadsAcrossSeparateRegistrationsAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -305,6 +333,16 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
 
         [JsonRpcMethod("Select")]
         public string SelectSecond(int second) => "second";
+    }
+
+    private sealed class TwoParameterTarget
+    {
+        public string Select(int first, int second) => $"{first}, {second}";
+    }
+
+    private sealed class DuplicateAttributedParameterTarget
+    {
+        public string Select([JsonRpcParameter("value")] int first, [JsonRpcParameter("value")] int second) => $"{first}, {second}";
     }
 
     private sealed class IntegerTarget
