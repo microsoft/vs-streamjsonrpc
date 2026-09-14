@@ -105,18 +105,68 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     /// Note this list may omit some special parameters such as a trailing <see cref="CancellationToken"/>.
     /// </param>
     internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters)
+        => this.GetJsonRpcMethodAttribute(methodName, parameters, request: null);
+
+    /// <summary>
+    /// Gets the method attribute for the candidate that best matches the incoming request.
+    /// </summary>
+    /// <param name="methodName">The RPC method name.</param>
+    /// <param name="parameters">The parameters currently being considered by the formatter.</param>
+    /// <param name="request">The incoming request, used to account for effective parameter names.</param>
+    /// <returns>The applicable method attribute, if one was found.</returns>
+    internal JsonRpcMethodAttribute? GetJsonRpcMethodAttribute(string methodName, ReadOnlySpan<ParameterInfo> parameters, JsonRpcRequest? request)
     {
         lock (this.SyncObject)
         {
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(methodName, out List<MethodSignatureAndTarget>? existingList))
             {
+                MethodSignatureAndTarget? firstMatch = null;
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
-                    if (entry.Signature.MatchesParametersExcludingCancellationToken(parameters))
+                    bool matches;
+                    try
                     {
-                        return entry.Attribute;
+                        if (firstMatch is not null &&
+                            (!object.ReferenceEquals(entry.Target, firstMatch.Target) ||
+                             !entry.Signature.HasCancellationTokenParameter ||
+                             !entry.Signature.EqualSignature(firstMatch.Signature)))
+                        {
+                            continue;
+                        }
+
+                        matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
+                    }
+                    catch (FileNotFoundException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+                    catch (FileLoadException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+                    catch (TypeLoadException) when (firstMatch is not null)
+                    {
+                        return firstMatch.Attribute;
+                    }
+
+                    if (matches && (request is null || entry.MatchesRequestShape(request)))
+                    {
+                        if (firstMatch is null)
+                        {
+                            firstMatch = entry;
+                            if (firstMatch.Signature.HasCancellationTokenParameter)
+                            {
+                                return firstMatch.Attribute;
+                            }
+                        }
+                        else
+                        {
+                            return entry.Attribute;
+                        }
                     }
                 }
+
+                return firstMatch?.Attribute;
             }
         }
 
@@ -379,7 +429,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     {
                         this.TraceLocalMethodAdded(rpcMethodName, signatureAndTarget);
                         revertAddLocalRpcTarget?.RecordMethodAdded(rpcMethodName, signatureAndTarget);
-                        AddMethodWithCancellationPreference(existingList!, signatureAndTarget);
+                        existingList!.Add(signatureAndTarget);
                     }
                     else
                     {

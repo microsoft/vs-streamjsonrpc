@@ -334,7 +334,7 @@ public abstract class FormatterBase : IJsonRpcFormatterState, IJsonRpcFormatterS
                 formatter.deserializingRequest = message is JsonRpcRequest;
 
                 // Consider the attribute applied to the particular overload that we're considering right now.
-                formatter.ApplicableMethodAttributeOnDeserializingMethod = message is JsonRpcRequest { Method: not null } request ? formatter.JsonRpc?.GetJsonRpcMethodAttribute(request.Method, parameters) : null;
+                formatter.ApplicableMethodAttributeOnDeserializingMethod = message is JsonRpcRequest { Method: not null } request ? formatter.JsonRpc?.GetJsonRpcMethodAttribute(request, parameters) : null;
 
                 this.formatter = formatter;
             }

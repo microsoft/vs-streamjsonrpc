@@ -14,9 +14,9 @@ namespace StreamJsonRpc;
 public sealed class TargetMethod
 {
     private readonly JsonRpcRequest request;
-    private object? target;
-    private RpcTargetMetadata.TargetMethodMetadata? signature;
-    private object?[]? arguments;
+    private readonly object? target;
+    private readonly RpcTargetMetadata.TargetMethodMetadata? signature;
+    private readonly object?[]? arguments;
     private SynchronizationContext? synchronizationContext;
 
     /// <summary>
@@ -37,43 +37,76 @@ public sealed class TargetMethod
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
         bool hasNamedArguments = request.ArgumentsAreNamed;
-        TryFindTargetMethod();
-
-        if (argumentDeserializationExceptions is object)
+        MethodSignatureAndTarget? selectedCandidateMethod = null;
+        object?[]? selectedArguments = null;
+        foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            this.ArgumentDeserializationFailures = new AggregateException(argumentDeserializationExceptions);
-        }
-
-        void TryFindTargetMethod()
-        {
-            foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
+            object?[]? argumentArray = null;
+            try
             {
-                bool allowFlexibleNamedArgumentMatching = hasNamedArguments && candidateMethod.AllowFlexibleNamedArgumentMatching;
+                if (selectedCandidateMethod is not null &&
+                    (!object.ReferenceEquals(candidateMethod.Target, selectedCandidateMethod.Target) ||
+                     !candidateMethod.Signature.HasCancellationTokenParameter ||
+                     !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
+                {
+                    continue;
+                }
+
                 int parameterCount = candidateMethod.Signature.Parameters.Count;
-                object?[] argumentArray = pool.Rent(parameterCount);
-                try
+                argumentArray = pool.Rent(parameterCount);
+                Span<object?> args = argumentArray.AsSpan(0, parameterCount);
+                bool allowFlexibleNamedArgumentMatching = hasNamedArguments && candidateMethod.AllowFlexibleNamedArgumentMatching;
+                if (this.TryGetArguments(request, candidateMethod, args, allowFlexibleNamedArgumentMatching))
                 {
-                    Span<object?> args = argumentArray.AsSpan(0, parameterCount);
-                    if (this.TryGetArguments(request, candidateMethod, args, allowFlexibleNamedArgumentMatching))
+                    if (candidateMethod.Signature.HasCancellationTokenParameter)
                     {
-                        this.synchronizationContext = candidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
-                        this.target = candidateMethod.Target;
-                        this.signature = candidateMethod.Signature;
-                        this.arguments = args.ToArray();
-                        return;
+                        selectedCandidateMethod = candidateMethod;
+                        selectedArguments = args.ToArray();
+                        break;
                     }
+
+                    selectedCandidateMethod ??= candidateMethod;
+                    selectedArguments ??= args.ToArray();
                 }
-                catch (RpcArgumentDeserializationException ex)
-                {
-                    argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
-                    argumentDeserializationExceptions.Add(ex);
-                    this.AddErrorMessage(ex.Message);
-                }
-                finally
+            }
+            catch (RpcArgumentDeserializationException ex)
+            {
+                argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
+                argumentDeserializationExceptions.Add(ex);
+                this.AddErrorMessage(ex.Message);
+            }
+            catch (FileNotFoundException) when (selectedCandidateMethod is not null)
+            {
+                break;
+            }
+            catch (FileLoadException) when (selectedCandidateMethod is not null)
+            {
+                break;
+            }
+            catch (TypeLoadException) when (selectedCandidateMethod is not null)
+            {
+                break;
+            }
+            finally
+            {
+                if (argumentArray is not null)
                 {
                     pool.Return(argumentArray, clearArray: true);
                 }
             }
+        }
+
+        if (selectedCandidateMethod is not null)
+        {
+            this.synchronizationContext = selectedCandidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
+            this.target = selectedCandidateMethod.Target;
+            this.signature = selectedCandidateMethod.Signature;
+            this.arguments = selectedArguments;
+        }
+
+        if (argumentDeserializationExceptions is object)
+        {
+            this.ArgumentDeserializationFailures = new AggregateException(argumentDeserializationExceptions);
         }
     }
 
