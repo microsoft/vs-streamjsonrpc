@@ -2526,8 +2526,8 @@ public abstract partial class JsonRpcTests : TestBase
         var data = Assert.IsType<CommonErrorData>(ex.DeserializedErrorData);
 
         Assert.Equal(JsonRpcErrorCode.InvalidParams, ex.ErrorCode);
-        Assert.StartsWith("One or more errors occurred. (", data.Message);
-        Assert.DoesNotContain(") (", data.Message);
+        Assert.Equal(typeof(AggregateException).FullName, data.TypeName);
+        Assert.Equal(typeof(RpcArgumentDeserializationException).FullName, data.Inner?.TypeName);
     }
 
     [Fact]
