@@ -96,6 +96,24 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
     [Fact]
+    public async Task CancellationPreferenceDoesNotReorderEarlierMatchingTargets()
+    {
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        var target = new InterleavedTargetWithNonMatchingFirstMethod();
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithNonMatchingFirstMethod), target, null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedOtherTarget), new OtherTarget(), null);
+        serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithCancellation), target, null);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        string result = await clientRpc.InvokeAsync<string>(nameof(IInterleavedOtherTarget.GetValue), "value");
+
+        Assert.Equal("other", result);
+    }
+
+    [Fact]
     public async Task DispatchRequestAllowsOmittedOptionalNamedParameterBeforeEquivalentCancellationOverload()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -214,6 +232,11 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         Task<string> GetValue(string value);
     }
 
+    public interface IInterleavedTargetWithNonMatchingFirstMethod
+    {
+        Task<string> GetValue(int value);
+    }
+
 #pragma warning restore SA1201
 
     public class Server
@@ -261,6 +284,13 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public class OtherTarget : IInterleavedOtherTarget
     {
         Task<string> IInterleavedOtherTarget.GetValue(string value) => Task.FromResult("other");
+    }
+
+    public class InterleavedTargetWithNonMatchingFirstMethod : IInterleavedTargetWithNonMatchingFirstMethod, IInterleavedTargetWithCancellation
+    {
+        Task<string> IInterleavedTargetWithNonMatchingFirstMethod.GetValue(int value) => Task.FromResult("non-matching");
+
+        Task<string> IInterleavedTargetWithCancellation.GetValue(string value, CancellationToken cancellationToken) => Task.FromResult("cancelable");
     }
 
 #if NET

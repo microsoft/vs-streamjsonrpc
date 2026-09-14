@@ -37,87 +37,70 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
-        var targetGroups = new Dictionary<object, List<MethodSignatureAndTarget>>(ReferenceComparer.Instance);
-        var orderedTargetGroups = new List<List<MethodSignatureAndTarget>>();
+        MethodSignatureAndTarget? selectedCandidateMethod = null;
+        object?[]? selectedArguments = null;
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
         {
-            object targetKey = candidateMethod.Target ?? NullTarget.Instance;
-            if (!targetGroups.TryGetValue(targetKey, out List<MethodSignatureAndTarget>? targetGroup))
+            object?[]? argumentArray = null;
+            try
             {
-                targetGroups.Add(targetKey, targetGroup = []);
-                orderedTargetGroups.Add(targetGroup);
-            }
-
-            targetGroup.Add(candidateMethod);
-        }
-
-        foreach (List<MethodSignatureAndTarget> targetGroup in orderedTargetGroups)
-        {
-            MethodSignatureAndTarget? selectedCandidateMethod = null;
-            object?[]? selectedArguments = null;
-            foreach (MethodSignatureAndTarget candidateMethod in targetGroup)
-            {
-                object?[]? argumentArray = null;
-                try
+                if (selectedCandidateMethod is not null &&
+                    (!object.ReferenceEquals(candidateMethod.Target, selectedCandidateMethod.Target) ||
+                     !candidateMethod.Signature.HasCancellationTokenParameter ||
+                     !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
                 {
-                    if (selectedCandidateMethod is not null &&
-                        (!candidateMethod.Signature.HasCancellationTokenParameter ||
-                         !candidateMethod.Signature.EqualSignature(selectedCandidateMethod.Signature)))
+                    continue;
+                }
+
+                int parameterCount = candidateMethod.Signature.Parameters.Count;
+                argumentArray = pool.Rent(parameterCount);
+                Span<object?> args = argumentArray.AsSpan(0, parameterCount);
+                if (this.TryGetArguments(request, candidateMethod, args))
+                {
+                    if (candidateMethod.Signature.HasCancellationTokenParameter)
                     {
-                        continue;
+                        selectedCandidateMethod = candidateMethod;
+                        selectedArguments = args.ToArray();
+                        break;
                     }
 
-                    int parameterCount = candidateMethod.Signature.Parameters.Count;
-                    argumentArray = pool.Rent(parameterCount);
-                    Span<object?> args = argumentArray.AsSpan(0, parameterCount);
-                    if (this.TryGetArguments(request, candidateMethod, args))
-                    {
-                        if (candidateMethod.Signature.HasCancellationTokenParameter)
-                        {
-                            selectedCandidateMethod = candidateMethod;
-                            selectedArguments = args.ToArray();
-                            break;
-                        }
-
-                        selectedCandidateMethod ??= candidateMethod;
-                        selectedArguments ??= args.ToArray();
-                    }
-                }
-                catch (RpcArgumentDeserializationException ex)
-                {
-                    argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
-                    argumentDeserializationExceptions.Add(ex);
-                    this.AddErrorMessage(ex.Message);
-                }
-                catch (FileNotFoundException) when (selectedCandidateMethod is not null)
-                {
-                    break;
-                }
-                catch (FileLoadException) when (selectedCandidateMethod is not null)
-                {
-                    break;
-                }
-                catch (TypeLoadException) when (selectedCandidateMethod is not null)
-                {
-                    break;
-                }
-                finally
-                {
-                    if (argumentArray is not null)
-                    {
-                        pool.Return(argumentArray, clearArray: true);
-                    }
+                    selectedCandidateMethod ??= candidateMethod;
+                    selectedArguments ??= args.ToArray();
                 }
             }
-
-            if (selectedCandidateMethod is not null)
+            catch (RpcArgumentDeserializationException ex)
             {
-                this.synchronizationContext = selectedCandidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
-                this.target = selectedCandidateMethod.Target;
-                this.signature = selectedCandidateMethod.Signature;
-                this.arguments = selectedArguments;
+                argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
+                argumentDeserializationExceptions.Add(ex);
+                this.AddErrorMessage(ex.Message);
+            }
+            catch (FileNotFoundException) when (selectedCandidateMethod is not null)
+            {
                 break;
             }
+            catch (FileLoadException) when (selectedCandidateMethod is not null)
+            {
+                break;
+            }
+            catch (TypeLoadException) when (selectedCandidateMethod is not null)
+            {
+                break;
+            }
+            finally
+            {
+                if (argumentArray is not null)
+                {
+                    pool.Return(argumentArray, clearArray: true);
+                }
+            }
+        }
+
+        if (selectedCandidateMethod is not null)
+        {
+            this.synchronizationContext = selectedCandidateMethod.SynchronizationContext ?? fallbackSynchronizationContext;
+            this.target = selectedCandidateMethod.Target;
+            this.signature = selectedCandidateMethod.Signature;
+            this.arguments = selectedArguments;
         }
 
         if (argumentDeserializationExceptions is object)
