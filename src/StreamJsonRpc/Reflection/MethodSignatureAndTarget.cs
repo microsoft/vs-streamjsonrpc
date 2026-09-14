@@ -112,6 +112,28 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
             return true;
         }
 
+        if (this.AllowFlexibleNamedArgumentMatching && request.ArgumentsAreNamed)
+        {
+            if (request.ArgumentNames is null)
+            {
+                return true;
+            }
+
+            HashSet<string> suppliedParameterNames = new(request.ArgumentNames, StringComparer.Ordinal);
+            ReadOnlySpan<ParameterInfo> effectiveParameters = this.EffectiveParameters.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+            for (int i = 0; i < effectiveParameters.Length; i++)
+            {
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? effectiveParameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null ||
+                    (effectiveParameters[i] is EffectiveParameterInfo { IsRequired: true } && !suppliedParameterNames.Contains(parameterName)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         if (request.ArgumentNames is not null)
         {
             HashSet<string> suppliedParameterNames = new(request.ArgumentNames, StringComparer.Ordinal);
