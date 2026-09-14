@@ -251,7 +251,9 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName));
                 }
 
-                if (existingList.Any(m => m.Signature.EqualSignature(methodTarget.Signature)))
+                if (existingList.Any(m =>
+                    m.Signature.HasCancellationTokenParameter == methodTarget.Signature.HasCancellationTokenParameter
+                    && m.Signature.EqualSignature(methodTarget.Signature)))
                 {
                     throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
                 }

@@ -330,6 +330,27 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     }
 
     /// <summary>
+    /// Gets a value indicating whether a parameter has a required attribute.
+    /// </summary>
+    /// <param name="parameter">The parameter to inspect.</param>
+    /// <returns><see langword="true"/> if the parameter has a required attribute; otherwise, <see langword="false"/>.</returns>
+    internal static bool HasRequiredAttribute(ParameterInfo parameter)
+    {
+        foreach (CustomAttributeData attribute in parameter.GetCustomAttributesData())
+        {
+            for (Type? attributeType = attribute.AttributeType; attributeType is not null; attributeType = attributeType.BaseType)
+            {
+                if (attributeType.FullName == "System.ComponentModel.DataAnnotations.RequiredAttribute")
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Implements argument matching after formatter-specific bulk deserialization has had an opportunity to run.
     /// </summary>
     private protected ArgumentMatchResult TryGetTypedArgumentsCore(
@@ -382,7 +403,8 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 
                 typedArguments[i] = argument;
             }
-            else if (parameter is MethodSignatureAndTarget.EffectiveParameterInfo { IsRequired: true })
+            else if (parameter is MethodSignatureAndTarget.EffectiveParameterInfo { IsRequired: true }
+                || HasRequiredAttribute(parameter))
             {
                 return ArgumentMatchResult.MissingArgument;
             }

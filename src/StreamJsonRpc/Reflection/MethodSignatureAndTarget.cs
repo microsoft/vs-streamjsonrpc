@@ -5,13 +5,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
 
 [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ",nq}")]
 internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 {
-    private const string RequiredAttributeFullName = "System.ComponentModel.DataAnnotations.RequiredAttribute";
     private readonly Func<string, string>? parameterNameTransform;
     private readonly ParameterInfo[]? effectiveParameters;
 
@@ -112,7 +112,7 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         {
             ParameterInfo contractParameter = contractParameters[parameterIndex];
             ParameterInfo implementationParameter = implementationParameters.Length > parameterIndex ? implementationParameters[parameterIndex] : contractParameter;
-            bool isRequired = HasRequiredAttribute(contractParameter) || HasRequiredAttribute(implementationParameter);
+            bool isRequired = JsonRpcRequest.HasRequiredAttribute(contractParameter) || JsonRpcRequest.HasRequiredAttribute(implementationParameter);
             bool hasInterfaceDefaultValue = false;
             bool hasConflictingDefaultValue = false;
             object? interfaceDefaultValue = null;
@@ -126,7 +126,7 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
                 }
 
                 ParameterInfo interfaceParameter = interfaceParameters[parameterIndex];
-                isRequired |= HasRequiredAttribute(interfaceParameter);
+                isRequired |= JsonRpcRequest.HasRequiredAttribute(interfaceParameter);
                 if (!interfaceParameter.HasDefaultValue)
                 {
                     continue;
@@ -223,22 +223,6 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         }
 
         return result ?? (IReadOnlyList<MethodInfo>)[];
-    }
-
-    private static bool HasRequiredAttribute(ParameterInfo parameter)
-    {
-        foreach (CustomAttributeData attribute in parameter.GetCustomAttributesData())
-        {
-            for (Type? attributeType = attribute.AttributeType; attributeType is not null; attributeType = attributeType.BaseType)
-            {
-                if (attributeType.FullName == RequiredAttributeFullName)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /// <summary>
