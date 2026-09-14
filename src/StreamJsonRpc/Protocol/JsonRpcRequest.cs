@@ -349,15 +349,23 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
 
         if (parameters.Length == 0)
         {
-            return ArgumentMatchResult.Success;
+            return this.ArgumentNames is not null && !allowFlexibleNamedArgumentMatching && this.ArgumentCount > 0
+                ? ArgumentMatchResult.ParameterArgumentCountMismatch
+                : ArgumentMatchResult.Success;
         }
 
+        int matchedNamedArgumentCount = 0;
         for (int i = 0; i < parameters.Length; i++)
         {
             ParameterInfo parameter = parameters[i];
             string? parameterName = parameterNames.IsEmpty ? parameter.Name : parameterNames[i];
             if (this.TryGetArgumentByNameOrIndex(parameterName, i, parameter.ParameterType, out object? argument))
             {
+                if (this.ArgumentNames is not null)
+                {
+                    matchedNamedArgumentCount++;
+                }
+
                 if (argument is null)
                 {
                     if (parameter.ParameterType.GetTypeInfo().IsValueType && Nullable.GetUnderlyingType(parameter.ParameterType) is null)
@@ -390,6 +398,11 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
             {
                 return ArgumentMatchResult.MissingArgument;
             }
+        }
+
+        if (!allowFlexibleNamedArgumentMatching && this.ArgumentNames is not null && matchedNamedArgumentCount != this.ArgumentCount)
+        {
+            return ArgumentMatchResult.ParameterArgumentCountMismatch;
         }
 
         return ArgumentMatchResult.Success;

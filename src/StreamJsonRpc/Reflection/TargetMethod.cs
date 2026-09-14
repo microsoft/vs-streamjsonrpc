@@ -36,7 +36,6 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
-        HashSet<MethodSignatureAndTarget>? flexibleCandidatesWithStrictDeserializationFailures = null;
         TryFindTargetMethod(allowFlexibleNamedArgumentMatching: false);
         if (this.signature is null && request.ArgumentNames is not null)
         {
@@ -57,7 +56,7 @@ public sealed class TargetMethod
                     continue;
                 }
 
-                if (allowFlexibleNamedArgumentMatching && flexibleCandidatesWithStrictDeserializationFailures?.Contains(candidateMethod) is true)
+                if (!allowFlexibleNamedArgumentMatching && request.ArgumentNames is not null && candidateMethod.AllowFlexibleNamedArgumentMatching)
                 {
                     continue;
                 }
@@ -80,11 +79,6 @@ public sealed class TargetMethod
                 {
                     argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
                     argumentDeserializationExceptions.Add(ex);
-                    if (!allowFlexibleNamedArgumentMatching && candidateMethod.AllowFlexibleNamedArgumentMatching)
-                    {
-                        (flexibleCandidatesWithStrictDeserializationFailures ??= []).Add(candidateMethod);
-                    }
-
                     this.AddErrorMessage(ex.Message);
                 }
                 finally
@@ -202,16 +196,9 @@ public sealed class TargetMethod
         }
         else
         {
-            if (this.NamedArgumentsPreventStrictMatch(method, request))
-            {
-                argumentMatch = JsonRpcRequest.ArgumentMatchResult.MissingArgument;
-            }
-            else
-            {
-                argumentMatch = method.ParameterNamesExcludingCancellationToken.IsEmpty
-                    ? request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken)
-                    : request.TryGetTypedArguments(methodParametersExcludingCancellationToken, method.ParameterNamesExcludingCancellationToken, argumentsExcludingCancellationToken);
-            }
+            argumentMatch = method.ParameterNamesExcludingCancellationToken.IsEmpty
+                ? request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken)
+                : request.TryGetTypedArguments(methodParametersExcludingCancellationToken, method.ParameterNamesExcludingCancellationToken, argumentsExcludingCancellationToken);
         }
 
         switch (argumentMatch)
@@ -237,76 +224,6 @@ public sealed class TargetMethod
             default:
                 return false;
         }
-    }
-
-    private bool HasDefaultValue(MethodSignatureAndTarget method)
-    {
-        for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
-        {
-            if (method.Signature.Parameters[i].HasDefaultValue)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool NamedArgumentsPreventStrictMatch(MethodSignatureAndTarget method, JsonRpcRequest request)
-    {
-        if (method.Attribute?.UseSingleObjectParameterDeserialization is true ||
-            request.ArgumentNames is not IEnumerable<string> argumentNames)
-        {
-            return false;
-        }
-
-        if (method.AllowFlexibleNamedArgumentMatching)
-        {
-            var argumentNameSet = new HashSet<string>(argumentNames, StringComparer.Ordinal);
-            return !this.AllArgumentsMatchParameters(method, argumentNameSet) || !this.HasAllArguments(method, argumentNameSet);
-        }
-
-        return !this.AllArgumentsMatchParameters(method, argumentNames) && this.HasDefaultValue(method);
-    }
-
-    private bool HasAllArguments(MethodSignatureAndTarget method, HashSet<string> argumentNames)
-    {
-        ReadOnlySpan<string?> parameterNames = method.ParameterNamesExcludingCancellationToken;
-        for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
-        {
-            string? parameterName = parameterNames.IsEmpty ? method.Signature.Parameters[i].Name : parameterNames[i];
-            if (parameterName is null || !argumentNames.Contains(parameterName))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool AllArgumentsMatchParameters(MethodSignatureAndTarget method, IEnumerable<string> argumentNames)
-    {
-        ReadOnlySpan<string?> parameterNames = method.ParameterNamesExcludingCancellationToken;
-        foreach (string argumentName in argumentNames)
-        {
-            bool found = false;
-            for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
-            {
-                string? parameterName = parameterNames.IsEmpty ? method.Signature.Parameters[i].Name : parameterNames[i];
-                if (StringComparer.Ordinal.Equals(argumentName, parameterName))
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;

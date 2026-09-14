@@ -161,6 +161,7 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The interface and target method metadata is already required in order to register and invoke the RPC method.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The target method metadata is already required in order to register and invoke the RPC method.")]
     private static MethodInfo? GetImplementationMethod(MethodInfo method, object? target)
     {
         if (target is null)
