@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using StreamJsonRpc.Protocol;
 
 namespace StreamJsonRpc;
@@ -232,19 +231,5 @@ public sealed class TargetMethod
             default:
                 return false;
         }
-    }
-
-    private sealed class ReferenceComparer : IEqualityComparer<object>
-    {
-        internal static readonly ReferenceComparer Instance = new();
-
-        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
-
-        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
-    }
-
-    private sealed class NullTarget
-    {
-        internal static readonly object Instance = new();
     }
 }

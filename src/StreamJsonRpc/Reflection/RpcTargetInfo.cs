@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using StreamJsonRpc.Protocol;
 
@@ -489,19 +488,5 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             this.removeEventHandler(this.server, this.registeredHandler);
         }
-    }
-
-    private sealed class NullTarget
-    {
-        internal static readonly object Instance = new();
-    }
-
-    private sealed class ReferenceComparer : IEqualityComparer<object>
-    {
-        internal static readonly ReferenceComparer Instance = new();
-
-        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
-
-        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
 }
