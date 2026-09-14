@@ -145,7 +145,7 @@
     <value>Flexible named argument matching cannot be enabled because multiple target methods resolve to the RPC method name "{0}".</value>
   </data>
   <data name="FlexibleNamedArgumentMatchingRequiresUniqueParameterNames" xml:space="preserve">
-    <value>Flexible named argument matching cannot be enabled because target method "{0}" has duplicate RPC parameter names.</value>
+    <value>Flexible named argument matching cannot be enabled because target method "{0}" has missing or duplicate RPC parameter names.</value>
   </data>
   <data name="ConnectionDropped" xml:space="preserve">
     <value>The JSON-RPC connection with the remote party was lost before the request could complete.</value>

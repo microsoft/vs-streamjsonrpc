@@ -123,6 +123,24 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public async Task BaseClassRegistrationUsesExposedContractDefault()
+    {
+        (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
+        using var server = new JsonRpc(serverStream);
+        server.AddLocalRpcTarget(typeof(BaseContractDefaultTarget), new DerivedContractDefaultTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        using var client = new JsonRpc(clientStream);
+        server.StartListening();
+        client.StartListening();
+
+        int result = await client.InvokeWithParameterObjectAsync<int>(
+            nameof(BaseContractDefaultTarget.GetValue),
+            NamedArgs.Create(new { }),
+            this.TimeoutToken);
+
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
     public void OverloadsAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -166,6 +184,25 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
 
         Assert.Equal("options", exception.ParamName);
         Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
+    public async Task MixedModeCancellationTokenPairPreservesRegistrationOrder()
+    {
+        (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
+        using var server = new JsonRpc(serverStream);
+        server.AddLocalRpcTarget(new CancelableTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        server.AddLocalRpcTarget(new NonCancelableTarget());
+        using var client = new JsonRpc(clientStream);
+        server.StartListening();
+        client.StartListening();
+
+        string result = await client.InvokeWithParameterObjectAsync<string>(
+            "Select",
+            NamedArgs.Create(new { value = 1 }),
+            this.TimeoutToken);
+
+        Assert.Equal("cancelable", result);
     }
 
     [Fact]
@@ -309,6 +346,16 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     private sealed class VirtualDerivedTarget : VirtualBaseTarget, IInterfaceDefaultTarget
     {
         public override int GetValue(int value = 5) => value;
+    }
+
+    private class BaseContractDefaultTarget
+    {
+        public virtual int GetValue(int value = 7) => value;
+    }
+
+    private sealed class DerivedContractDefaultTarget : BaseContractDefaultTarget
+    {
+        public override int GetValue(int value) => value;
     }
 
     private sealed class OverloadedTarget

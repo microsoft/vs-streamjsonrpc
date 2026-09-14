@@ -2519,8 +2519,12 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task FlexibleNamedMethodArgThrowsOnDeserializationOnlyOnce()
     {
+        this.ReinitializeFlexibleRpcWithoutListening();
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
         var ex = await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync(
-            nameof(Server.MethodWithArgThatFailsToDeserialize),
+            nameof(FlexibleNamedArgumentTarget.MethodWithArgThatFailsToDeserialize),
             NamedArgs.Create(new { arg1 = new TypeThrowsWhenDeserialized() }),
             this.TimeoutToken)).WithCancellation(this.TimeoutToken);
         var data = Assert.IsType<CommonErrorData>(ex.DeserializedErrorData);
@@ -3740,6 +3744,10 @@ public abstract partial class JsonRpcTests : TestBase
         {
             p.Report(1);
             return 1;
+        }
+
+        public void MethodWithArgThatFailsToDeserialize(TypeThrowsWhenDeserialized arg1)
+        {
         }
     }
 

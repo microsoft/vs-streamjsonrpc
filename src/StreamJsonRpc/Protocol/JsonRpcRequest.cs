@@ -340,16 +340,17 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     {
         Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
         Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
+        bool hasNamedArguments = this.ArgumentNames is not null;
 
         // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
-        if ((!allowFlexibleNamedArgumentMatching || this.ArgumentNames is null) && parameters.Length < this.ArgumentCount)
+        if ((!allowFlexibleNamedArgumentMatching || !hasNamedArguments) && parameters.Length < this.ArgumentCount)
         {
             return ArgumentMatchResult.ParameterArgumentCountMismatch;
         }
 
         if (parameters.Length == 0)
         {
-            return this.ArgumentNames is not null && !allowFlexibleNamedArgumentMatching && this.ArgumentCount > 0
+            return hasNamedArguments && !allowFlexibleNamedArgumentMatching && this.ArgumentCount > 0
                 ? ArgumentMatchResult.ParameterArgumentCountMismatch
                 : ArgumentMatchResult.Success;
         }
@@ -361,7 +362,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
             string? parameterName = parameterNames.IsEmpty ? parameter.Name : parameterNames[i];
             if (this.TryGetArgumentByNameOrIndex(parameterName, i, parameter.ParameterType, out object? argument))
             {
-                if (this.ArgumentNames is not null)
+                if (hasNamedArguments)
                 {
                     matchedNamedArgumentCount++;
                 }
@@ -390,7 +391,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
                 // The client did not supply an argument, but we have a default value to use, courtesy of the parameter itself.
                 typedArguments[i] = parameter.DefaultValue;
             }
-            else if (allowFlexibleNamedArgumentMatching && this.ArgumentNames is not null)
+            else if (allowFlexibleNamedArgumentMatching && hasNamedArguments)
             {
                 typedArguments[i] = parameter.ParameterType.GetTypeInfo().IsValueType ? GetDefaultValue(parameter.ParameterType) : null;
             }
@@ -400,7 +401,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
             }
         }
 
-        if (!allowFlexibleNamedArgumentMatching && this.ArgumentNames is not null && matchedNamedArgumentCount != this.ArgumentCount)
+        if (!allowFlexibleNamedArgumentMatching && hasNamedArguments && matchedNamedArgumentCount != this.ArgumentCount)
         {
             return ArgumentMatchResult.ParameterArgumentCountMismatch;
         }

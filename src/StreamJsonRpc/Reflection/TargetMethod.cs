@@ -36,31 +36,19 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
-        TryFindTargetMethod(allowFlexibleNamedArgumentMatching: false);
-        if (this.signature is null && request.ArgumentNames is not null)
-        {
-            TryFindTargetMethod(allowFlexibleNamedArgumentMatching: true);
-        }
+        bool hasNamedArguments = request.ArgumentNames is not null;
+        TryFindTargetMethod();
 
         if (argumentDeserializationExceptions is object)
         {
             this.ArgumentDeserializationFailures = new AggregateException(argumentDeserializationExceptions);
         }
 
-        void TryFindTargetMethod(bool allowFlexibleNamedArgumentMatching)
+        void TryFindTargetMethod()
         {
             foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
             {
-                if (allowFlexibleNamedArgumentMatching && !candidateMethod.AllowFlexibleNamedArgumentMatching)
-                {
-                    continue;
-                }
-
-                if (!allowFlexibleNamedArgumentMatching && request.ArgumentNames is not null && candidateMethod.AllowFlexibleNamedArgumentMatching)
-                {
-                    continue;
-                }
-
+                bool allowFlexibleNamedArgumentMatching = hasNamedArguments && candidateMethod.AllowFlexibleNamedArgumentMatching;
                 int parameterCount = candidateMethod.Signature.Parameters.Count;
                 object?[] argumentArray = pool.Rent(parameterCount);
                 try
