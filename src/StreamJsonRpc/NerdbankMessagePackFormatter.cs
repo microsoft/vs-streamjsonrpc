@@ -1055,6 +1055,8 @@ public partial class NerdbankMessagePackFormatter : FormatterBase, IJsonRpcMessa
 
         public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
 
+        public override bool ArgumentsAreNamed => this.MsgPackNamedArguments is not null;
+
         public override IEnumerable<string>? ArgumentNames => this.MsgPackNamedArguments?.Keys;
 
         public RawMessagePack OriginalMessagePack { get; internal set; }

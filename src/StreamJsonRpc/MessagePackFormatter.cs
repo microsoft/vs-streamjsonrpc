@@ -2213,6 +2213,8 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
         public override int ArgumentCount => this.MsgPackNamedArguments?.Count ?? this.MsgPackPositionalArguments?.Count ?? base.ArgumentCount;
 
+        public override bool ArgumentsAreNamed => this.MsgPackNamedArguments is not null;
+
         public override IEnumerable<string>? ArgumentNames => this.MsgPackNamedArguments?.Keys;
 
         public ReadOnlySequence<byte> OriginalMessagePack { get; internal set; }

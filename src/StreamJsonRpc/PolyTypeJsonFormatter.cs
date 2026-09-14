@@ -519,6 +519,8 @@ public partial class PolyTypeJsonFormatter : FormatterBase, IJsonRpcMessageForma
 
         public override int ArgumentCount => this.argumentCount ?? base.ArgumentCount;
 
+        public override bool ArgumentsAreNamed => this.JsonArguments?.ValueKind is JsonValueKind.Object;
+
         public override IEnumerable<string>? ArgumentNames
         {
             get
