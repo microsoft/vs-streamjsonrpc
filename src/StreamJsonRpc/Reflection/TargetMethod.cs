@@ -36,6 +36,7 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
+        HashSet<MethodSignatureAndTarget>? flexibleCandidatesWithStrictDeserializationFailures = null;
         TryFindTargetMethod(allowFlexibleNamedArgumentMatching: false);
         if (this.signature is null && request.ArgumentNames is not null)
         {
@@ -52,6 +53,11 @@ public sealed class TargetMethod
             foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
             {
                 if (allowFlexibleNamedArgumentMatching && !candidateMethod.AllowFlexibleNamedArgumentMatching)
+                {
+                    continue;
+                }
+
+                if (allowFlexibleNamedArgumentMatching && flexibleCandidatesWithStrictDeserializationFailures?.Contains(candidateMethod) is true)
                 {
                     continue;
                 }
@@ -74,6 +80,11 @@ public sealed class TargetMethod
                 {
                     argumentDeserializationExceptions ??= new List<RpcArgumentDeserializationException>();
                     argumentDeserializationExceptions.Add(ex);
+                    if (!allowFlexibleNamedArgumentMatching && candidateMethod.AllowFlexibleNamedArgumentMatching)
+                    {
+                        (flexibleCandidatesWithStrictDeserializationFailures ??= []).Add(candidateMethod);
+                    }
+
                     this.AddErrorMessage(ex.Message);
                 }
                 finally

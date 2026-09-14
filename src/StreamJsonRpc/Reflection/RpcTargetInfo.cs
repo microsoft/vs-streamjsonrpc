@@ -361,7 +361,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         this.TraceSource.TraceEvent(
                             TraceEventType.Warning,
                             (int)JsonRpc.TraceEvents.ConflictingParameterDefaultValues,
-                            "RPC target method {0} implements interface methods with conflicting parameter default values. Its declared default values will be used.",
+                            "RPC target method {0} implements interface methods with conflicting parameter default values. Its implementation default values, or parameter type defaults when none are declared, will be used.",
                             signatureAndTarget.Signature.MethodInfo);
                     }
 
@@ -393,7 +393,24 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         return first.Signature.HasCancellationTokenParameter != second.Signature.HasCancellationTokenParameter
             && first.Signature.EqualSignature(second.Signature)
-            && first.ParameterNamesExcludingCancellationToken.SequenceEqual(second.ParameterNamesExcludingCancellationToken);
+            && HaveEqualParameterNames(first, second);
+    }
+
+    private static bool HaveEqualParameterNames(MethodSignatureAndTarget first, MethodSignatureAndTarget second)
+    {
+        ReadOnlySpan<string?> firstNames = first.ParameterNamesExcludingCancellationToken;
+        ReadOnlySpan<string?> secondNames = second.ParameterNamesExcludingCancellationToken;
+        for (int i = 0; i < first.Signature.TotalParamCountExcludingCancellationToken; i++)
+        {
+            string? firstName = firstNames.IsEmpty ? first.Signature.Parameters[i].Name : firstNames[i];
+            string? secondName = secondNames.IsEmpty ? second.Signature.Parameters[i].Name : secondNames[i];
+            if (!StringComparer.Ordinal.Equals(firstName, secondName))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void AddMethodWithCancellationPreference(List<MethodSignatureAndTarget> methods, MethodSignatureAndTarget method)

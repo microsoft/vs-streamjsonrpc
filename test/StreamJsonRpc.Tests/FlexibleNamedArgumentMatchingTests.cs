@@ -105,6 +105,24 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public async Task BaseClassRegistrationUsesRuntimeOverrideInterfaceDefault()
+    {
+        (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
+        using var server = new JsonRpc(serverStream);
+        server.AddLocalRpcTarget(typeof(VirtualBaseTarget), new VirtualDerivedTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+        using var client = new JsonRpc(clientStream);
+        server.StartListening();
+        client.StartListening();
+
+        int result = await client.InvokeWithParameterObjectAsync<int>(
+            nameof(VirtualBaseTarget.GetValue),
+            NamedArgs.Create(new { }),
+            this.TimeoutToken);
+
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
     public void OverloadsAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -123,6 +141,19 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
 
         server.AddLocalRpcTarget(new NonCancelableTarget(), options);
         server.AddLocalRpcTarget(new CancelableTarget(), options);
+    }
+
+    [Fact]
+    public void CancellationTokenOverloadsWithDifferentParameterNamesAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+        server.AddLocalRpcTarget(new FirstNamedTarget(), options);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new DifferentlyNamedCancelableTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
     }
 
     [Fact]
@@ -230,6 +261,16 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         public int GetValue(int value = 3) => value;
     }
 
+    private class VirtualBaseTarget
+    {
+        public virtual int GetValue(int value = 3) => value;
+    }
+
+    private sealed class VirtualDerivedTarget : VirtualBaseTarget, IInterfaceDefaultTarget
+    {
+        public override int GetValue(int value = 5) => value;
+    }
+
     private sealed class OverloadedTarget
     {
         [JsonRpcMethod("Select")]
@@ -249,6 +290,12 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     {
         [JsonRpcMethod("Select")]
         public string Select(int value, CancellationToken cancellationToken) => "cancelable";
+    }
+
+    private sealed class DifferentlyNamedCancelableTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int second, CancellationToken cancellationToken) => "cancelable";
     }
 
     private sealed class DifferentlyNamedOverloadedTarget

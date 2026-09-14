@@ -2517,6 +2517,20 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    public async Task FlexibleNamedMethodArgThrowsOnDeserializationOnlyOnce()
+    {
+        var ex = await Assert.ThrowsAsync<RemoteMethodNotFoundException>(() => this.clientRpc.InvokeWithParameterObjectAsync(
+            nameof(Server.MethodWithArgThatFailsToDeserialize),
+            NamedArgs.Create(new { arg1 = new TypeThrowsWhenDeserialized() }),
+            this.TimeoutToken)).WithCancellation(this.TimeoutToken);
+        var data = Assert.IsType<CommonErrorData>(ex.DeserializedErrorData);
+
+        Assert.Equal(JsonRpcErrorCode.InvalidParams, ex.ErrorCode);
+        Assert.StartsWith("One or more errors occurred. (", data.Message);
+        Assert.DoesNotContain(") (", data.Message);
+    }
+
+    [Fact]
     public async Task CanPassExceptionFromServer_DeserializedErrorData()
     {
         RemoteInvocationException exception = await Assert.ThrowsAnyAsync<RemoteInvocationException>(() => this.clientRpc.InvokeAsync(nameof(Server.MethodThatThrowsUnauthorizedAccessException)));

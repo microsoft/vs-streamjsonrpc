@@ -163,14 +163,33 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The interface and target method metadata is already required in order to register and invoke the RPC method.")]
     private static MethodInfo? GetImplementationMethod(MethodInfo method, object? target)
     {
-        if (target is null || method.DeclaringType?.IsInterface is not true)
+        if (target is null)
         {
             return method;
         }
 
-        InterfaceMapping interfaceMapping = target.GetType().GetInterfaceMap(method.DeclaringType);
-        int methodIndex = Array.IndexOf(interfaceMapping.InterfaceMethods, method);
-        return methodIndex >= 0 ? interfaceMapping.TargetMethods[methodIndex] : null;
+        if (method.DeclaringType?.IsInterface is true)
+        {
+            InterfaceMapping interfaceMapping = target.GetType().GetInterfaceMap(method.DeclaringType);
+            int methodIndex = Array.IndexOf(interfaceMapping.InterfaceMethods, method);
+            return methodIndex >= 0 ? interfaceMapping.TargetMethods[methodIndex] : null;
+        }
+
+        if (method.IsVirtual && method.DeclaringType != target.GetType())
+        {
+            MethodInfo baseDefinition = method.GetBaseDefinition();
+            for (Type? candidateType = target.GetType(); candidateType is not null; candidateType = candidateType.BaseType)
+            {
+                MethodInfo? overrideMethod = candidateType.GetTypeInfo().DeclaredMethods.FirstOrDefault(candidate =>
+                    candidate.IsVirtual && candidate.GetBaseDefinition() == baseDefinition);
+                if (overrideMethod is not null)
+                {
+                    return overrideMethod;
+                }
+            }
+        }
+
+        return method;
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The interface and target method metadata is already required in order to register and invoke the RPC method.")]
