@@ -482,7 +482,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
     private static bool HasUniqueParameterNames(MethodSignatureAndTarget method)
     {
         ReadOnlySpan<string?> effectiveNames = method.ParameterNamesExcludingCancellationToken;
-        var uniqueNames = new HashSet<string>(StringComparer.Ordinal);
+        var uniqueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
         {
             string? name = effectiveNames.IsEmpty ? method.Signature.Parameters[i].Name : effectiveNames[i];

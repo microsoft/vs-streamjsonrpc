@@ -258,6 +258,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void CaseInsensitiveDuplicateParameterNamesAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new CaseInsensitiveDuplicateParameterTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains(nameof(CaseInsensitiveDuplicateParameterTarget.Select), exception.Message);
+    }
+
+    [Fact]
     public void OverloadsAcrossSeparateRegistrationsAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -457,6 +469,11 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     private sealed class DuplicateAttributedParameterTarget
     {
         public string Select([JsonRpcParameter("value")] int first, [JsonRpcParameter("value")] int second) => $"{first}, {second}";
+    }
+
+    private sealed class CaseInsensitiveDuplicateParameterTarget
+    {
+        public string Select([JsonRpcParameter("value")] int first, [JsonRpcParameter("VALUE")] int second) => $"{first}, {second}";
     }
 
     private sealed class IntegerTarget
