@@ -488,24 +488,6 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         return true;
     }
 
-    private static void AddMethodWithCancellationPreference(List<MethodSignatureAndTarget> methods, MethodSignatureAndTarget method)
-    {
-        if (method.Signature.HasCancellationTokenParameter)
-        {
-            int equivalentNonCancelableMethodIndex = methods.FindIndex(candidate =>
-                ReferenceEquals(candidate.Target, method.Target) &&
-                !candidate.Signature.HasCancellationTokenParameter &&
-                candidate.Signature.EqualSignature(method.Signature));
-            if (equivalentNonCancelableMethodIndex >= 0)
-            {
-                methods.Insert(equivalentNonCancelableMethodIndex, method);
-                return;
-            }
-        }
-
-        methods.Add(method);
-    }
-
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)
     {
         Requires.NotNullOrEmpty(rpcMethodName, nameof(rpcMethodName));
