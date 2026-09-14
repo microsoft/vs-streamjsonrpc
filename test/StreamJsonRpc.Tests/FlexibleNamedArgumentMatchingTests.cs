@@ -199,6 +199,20 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void FlexibleTargetAfterStrictCancellationTokenBatchIsRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        server.AddLocalRpcTarget(new StrictMultipleCancelableTarget());
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(
+            new NonCancelableTarget(),
+            new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true }));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
     public async Task MixedModeCancellationTokenPairPreservesRegistrationOrder()
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();

@@ -390,6 +390,14 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     bool flexibleRouteParticipates = options.AllowFlexibleNamedArgumentMatching || existingMethods.Any(method => method.AllowFlexibleNamedArgumentMatching);
                     if (flexibleRouteParticipates)
                     {
+                        for (int i = 0; i < existingMethods.Count; i++)
+                        {
+                            if (existingMethods.Skip(i + 1).Any(method => !CanShareFlexibleRpcName(existingMethods[i], method)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
+                        }
+
                         foreach (MethodSignatureAndTarget newMethod in methods)
                         {
                             if (existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, newMethod)))
