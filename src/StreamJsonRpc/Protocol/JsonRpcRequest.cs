@@ -296,17 +296,18 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
                 : this.TryGetTypedArguments(parameters, parameterNames, typedArguments);
             if (exactMatch == ArgumentMatchResult.Success)
             {
-                bool hasUnwrappedRequiredParameter = false;
+                bool hasRequiredParameter = false;
                 foreach (ParameterInfo parameter in parameters)
                 {
-                    if (parameter is not MethodSignatureAndTarget.EffectiveParameterInfo && HasRequiredAttribute(parameter))
+                    if (parameter is MethodSignatureAndTarget.EffectiveParameterInfo { IsRequired: true }
+                        || HasRequiredAttribute(parameter))
                     {
-                        hasUnwrappedRequiredParameter = true;
+                        hasRequiredParameter = true;
                         break;
                     }
                 }
 
-                if (!hasUnwrappedRequiredParameter)
+                if (!hasRequiredParameter)
                 {
                     return exactMatch;
                 }

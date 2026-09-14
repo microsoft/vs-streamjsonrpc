@@ -145,6 +145,31 @@ public class JsonRpcRequestTests
     }
 
     [Fact]
+    public void FlexibleMatchingValidatesEffectiveRequiredParameterAfterLegacySuccess()
+    {
+        var request = new SuccessfulLegacyJsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(),
+        };
+        ParameterInfo reflectedParameter = typeof(JsonRpcRequestTests).GetMethod(nameof(RequiredTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters()[0];
+        Type effectiveParameterType = typeof(JsonRpc).Assembly.GetType("StreamJsonRpc.MethodSignatureAndTarget+EffectiveParameterInfo", throwOnError: true)!;
+        var effectiveParameter = (ParameterInfo)Activator.CreateInstance(
+            effectiveParameterType,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            args: new object?[] { reflectedParameter, true, true, "fallback" },
+            culture: null)!;
+        ParameterInfo[] parameters = [effectiveParameter];
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.True(effectiveParameter.HasDefaultValue);
+        Assert.True(request.LegacyOverrideInvoked);
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.MissingArgument, result);
+    }
+
+    [Fact]
     public void StrictMatchingAppliesDefaultForAttributedReflectedParameter()
     {
         var request = new JsonRpcRequest
@@ -283,6 +308,18 @@ public class JsonRpcRequestTests
         {
             this.LegacyOverrideInvoked = true;
             return base.TryGetTypedArguments(parameters, typedArguments);
+        }
+    }
+
+    private sealed class SuccessfulLegacyJsonRpcRequest : JsonRpcRequest
+    {
+        internal bool LegacyOverrideInvoked { get; private set; }
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+        {
+            this.LegacyOverrideInvoked = true;
+            typedArguments[0] = parameters[0].DefaultValue;
+            return ArgumentMatchResult.Success;
         }
     }
 
