@@ -54,12 +54,24 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
     internal SynchronizationContext? SynchronizationContext { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this method allows flexible matching of named arguments.
+    /// </summary>
     internal bool AllowFlexibleNamedArgumentMatching { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether applicable interface methods declare conflicting default parameter values.
+    /// </summary>
     internal bool HasConflictingInterfaceDefaultValues { get; }
 
+    /// <summary>
+    /// Gets the RPC parameter names after applying any parameter-name transformation.
+    /// </summary>
     internal ReadOnlySpan<string?> ParameterNamesExcludingCancellationToken => (this.parameterNamesExcludingCancellationToken ??= GetEffectiveParameterNames(this.Signature, this.parameterNameTransform)).Span;
 
+    /// <summary>
+    /// Gets parameters carrying the merged required and default-value semantics used for flexible binding.
+    /// </summary>
     internal ReadOnlyMemory<ParameterInfo> EffectiveParameters => this.effectiveParameters;
 
     [ExcludeFromCodeCoverage]

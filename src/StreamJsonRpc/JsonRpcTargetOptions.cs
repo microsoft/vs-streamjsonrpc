@@ -96,8 +96,9 @@ public class JsonRpcTargetOptions
     /// This option does not affect positional arguments.
     /// </para>
     /// <para>
-    /// A target cannot be registered with this option enabled when multiple methods resolve to the same RPC method name,
-    /// because flexible argument matching cannot reliably disambiguate overloads.
+    /// A target cannot be registered with this option enabled when distinct methods resolve to the same RPC method name,
+    /// because flexible argument matching cannot reliably disambiguate overloads. A pair that differs only by a trailing
+    /// <see cref="CancellationToken"/> is allowed because it has one wire signature.
     /// </para>
     /// </remarks>
     public bool AllowFlexibleNamedArgumentMatching { get; set; }

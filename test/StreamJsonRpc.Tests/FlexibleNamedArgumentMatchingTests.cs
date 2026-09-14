@@ -126,6 +126,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void SameTypedOverloadsWithDifferentParameterNamesAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new DifferentlyNamedOverloadedTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
     public void OverloadsAcrossSeparateRegistrationsAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -135,6 +147,31 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new StringTarget(), options));
 
         Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
+    public void SameTypedOverloadsWithDifferentParameterNamesAcrossSeparateRegistrationsAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+        server.AddLocalRpcTarget(new FirstNamedTarget(), options);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new SecondNamedTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
+    public void LocalMethodAddedAfterFlexibleTargetIsRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+        server.AddLocalRpcTarget(new IntegerTarget(), options);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => server.AddLocalRpcMethod("Select", new Func<string, string>(value => value)));
+
         Assert.Contains("Select", exception.Message);
     }
 
@@ -214,6 +251,15 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         public string Select(int value, CancellationToken cancellationToken) => "cancelable";
     }
 
+    private sealed class DifferentlyNamedOverloadedTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string SelectFirst(int first) => "first";
+
+        [JsonRpcMethod("Select")]
+        public string SelectSecond(int second) => "second";
+    }
+
     private sealed class IntegerTarget
     {
         [JsonRpcMethod("Select")]
@@ -224,6 +270,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     {
         [JsonRpcMethod("Select")]
         public string Select(string value) => value;
+    }
+
+    private sealed class FirstNamedTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int first) => first.ToString();
+    }
+
+    private sealed class SecondNamedTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int second) => second.ToString();
     }
 
     private sealed class RpcPair : IDisposable
