@@ -296,7 +296,20 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
                 : this.TryGetTypedArguments(parameters, parameterNames, typedArguments);
             if (exactMatch == ArgumentMatchResult.Success)
             {
-                return exactMatch;
+                bool hasUnwrappedRequiredParameter = false;
+                foreach (ParameterInfo parameter in parameters)
+                {
+                    if (parameter is not MethodSignatureAndTarget.EffectiveParameterInfo && HasRequiredAttribute(parameter))
+                    {
+                        hasUnwrappedRequiredParameter = true;
+                        break;
+                    }
+                }
+
+                if (!hasUnwrappedRequiredParameter)
+                {
+                    return exactMatch;
+                }
             }
         }
 
@@ -417,7 +430,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
                 typedArguments[i] = argument;
             }
             else if (parameter is MethodSignatureAndTarget.EffectiveParameterInfo { IsRequired: true }
-                || HasRequiredAttribute(parameter))
+                || (allowFlexibleNamedArgumentMatching && HasRequiredAttribute(parameter)))
             {
                 return ArgumentMatchResult.MissingArgument;
             }

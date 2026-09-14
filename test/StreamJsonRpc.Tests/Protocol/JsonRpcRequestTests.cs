@@ -145,6 +145,22 @@ public class JsonRpcRequestTests
     }
 
     [Fact]
+    public void StrictMatchingAppliesDefaultForAttributedReflectedParameter()
+    {
+        var request = new JsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(),
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(RequiredTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.Equal("fallback", arguments[0]);
+    }
+
+    [Fact]
     public void StrictMatchingHonorsCustomNamedLookupSemantics()
     {
         var request = new JsonRpcRequest
