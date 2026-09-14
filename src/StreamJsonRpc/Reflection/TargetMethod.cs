@@ -36,7 +36,7 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
-        bool hasNamedArguments = request.ArgumentNames is not null;
+        bool hasNamedArguments = request.ArgumentsAreNamed;
         TryFindTargetMethod();
 
         if (argumentDeserializationExceptions is object)

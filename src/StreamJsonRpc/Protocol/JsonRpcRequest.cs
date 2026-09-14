@@ -63,7 +63,8 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     /// An array of arguments OR map of named arguments.
     /// Preferably either an instance of <see cref="IReadOnlyDictionary{TKey, TValue}"/> where the key is a string representing the name of the parameter
     /// and the value is the argument, or an array of <see cref="object"/>.
-    /// If neither of these, <see cref="ArgumentCount"/> and <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
+    /// If neither of these, <see cref="ArgumentCount"/>, <see cref="ArgumentsAreNamed"/>, and
+    /// <see cref="TryGetArgumentByNameOrIndex(string, int, Type, out object)"/> should be overridden.
     /// </value>
     [DataMember(Name = "params", Order = 3, IsRequired = false, EmitDefaultValue = false)]
     [STJ.JsonPropertyName("params"), STJ.JsonPropertyOrder(3), STJ.JsonIgnore(Condition = STJ.JsonIgnoreCondition.WhenWritingNull)]
@@ -192,6 +193,18 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     [STJ.JsonIgnore]
     [PropertyShape(Ignore = true)]
     public virtual IEnumerable<string>? ArgumentNames => this.NamedArguments?.Keys;
+
+    /// <summary>
+    /// Gets a value indicating whether the arguments should be matched by name.
+    /// </summary>
+    /// <remarks>
+    /// Custom argument representations with at least one argument are assumed to be named unless
+    /// <see cref="ArgumentsList"/> is available. Override this property for a custom positional representation.
+    /// </remarks>
+    [IgnoreDataMember]
+    [STJ.JsonIgnore]
+    [PropertyShape(Ignore = true)]
+    public virtual bool ArgumentsAreNamed => this.ArgumentNames is not null || (this.ArgumentsList is null && this.ArgumentCount > 0);
 
     /// <summary>
     /// Gets or sets the data for the <see href="https://www.w3.org/TR/trace-context/">W3C Trace Context</see> <c>traceparent</c> value.
@@ -361,7 +374,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
     {
         Requires.Argument(parameters.Length == typedArguments.Length, nameof(typedArguments), "Length of spans do not match.");
         Requires.Argument(parameterNames.IsEmpty || parameterNames.Length == parameters.Length, nameof(parameterNames), "Length must match parameters or be empty.");
-        bool hasNamedArguments = this.ArgumentNames is not null;
+        bool hasNamedArguments = this.ArgumentsAreNamed;
 
         // If we're given more arguments than parameters to hold them, that's a pretty good sign there's a method mismatch.
         if ((!allowFlexibleNamedArgumentMatching || !hasNamedArguments) && parameters.Length < this.ArgumentCount)

@@ -294,6 +294,17 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         server.AddLocalRpcMethod("Select", cancelableMethod, new CancelableTarget());
     }
 
+    [Fact]
+    public void NonCancellationTokenLocalMethodAddedAfterFlexibleCancelableTargetIsAllowed()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+        server.AddLocalRpcTarget(new CancelableTarget(), options);
+        var nonCancelableMethod = typeof(NonCancelableTarget).GetMethod(nameof(NonCancelableTarget.Select))!;
+
+        server.AddLocalRpcMethod("Select", nonCancelableMethod, new NonCancelableTarget());
+    }
+
     private RpcPair CreateContractRpcPair<TContract>(TContract target)
         where TContract : class
     {

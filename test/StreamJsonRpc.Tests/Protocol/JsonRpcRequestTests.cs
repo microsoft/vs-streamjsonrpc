@@ -85,6 +85,21 @@ public class JsonRpcRequestTests
     }
 
     [Fact]
+    public void FlexibleMatchingSupportsCustomNamedArgumentRepresentation()
+    {
+        var request = new CustomNamedJsonRpcRequest();
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(OptionalTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Null(request.ArgumentNames);
+        Assert.True(request.ArgumentsAreNamed);
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.Equal(0, arguments[0]);
+    }
+
+    [Fact]
     public void FlexibleMatchingDoesNotRelaxPositionalArgumentCount()
     {
         var request = new JsonRpcRequest
@@ -252,6 +267,17 @@ public class JsonRpcRequestTests
         {
             this.LegacyOverrideInvoked = true;
             return base.TryGetTypedArguments(parameters, typedArguments);
+        }
+    }
+
+    private sealed class CustomNamedJsonRpcRequest : JsonRpcRequest
+    {
+        public override int ArgumentCount => 1;
+
+        public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
+        {
+            value = true;
+            return name == "unknown";
         }
     }
 }
