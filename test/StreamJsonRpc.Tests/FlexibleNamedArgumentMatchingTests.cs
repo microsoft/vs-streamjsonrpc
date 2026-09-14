@@ -187,6 +187,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void StrictCancellationTokenBatchAfterFlexibleTargetIsRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        server.AddLocalRpcTarget(new NonCancelableTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new StrictMultipleCancelableTarget()));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
     public async Task MixedModeCancellationTokenPairPreservesRegistrationOrder()
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
@@ -412,6 +424,15 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         [JsonRpcMethod("Select")]
         public string Select(int value) => "non-cancelable";
 
+        [JsonRpcMethod("Select")]
+        public string SelectFirst(int value, CancellationToken cancellationToken) => "first";
+
+        [JsonRpcMethod("Select")]
+        public string SelectSecond(int value, CancellationToken cancellationToken) => "second";
+    }
+
+    private sealed class StrictMultipleCancelableTarget
+    {
         [JsonRpcMethod("Select")]
         public string SelectFirst(int value, CancellationToken cancellationToken) => "first";
 

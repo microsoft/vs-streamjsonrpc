@@ -344,7 +344,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             : null;
         HashSet<MethodInfo>? methodsWithReportedDefaultValueConflicts = null;
         var resolvedMethods = new List<(string RpcMethodName, IReadOnlyList<MethodSignatureAndTarget> Methods)>();
-        Dictionary<string, List<MethodSignatureAndTarget>>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
+        Dictionary<string, List<MethodSignatureAndTarget>> methodsByRpcName = new(StringComparer.Ordinal);
         foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
         {
             string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
@@ -358,45 +358,52 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 options.AllowFlexibleNamedArgumentMatching)).ToArray();
             resolvedMethods.Add((rpcMethodName, methods));
 
-            if (methodsByRpcName is not null)
+            foreach (MethodSignatureAndTarget method in methods)
             {
-                foreach (MethodSignatureAndTarget method in methods)
+                if (options.AllowFlexibleNamedArgumentMatching && !HasUniqueParameterNames(method))
                 {
-                    if (!HasUniqueParameterNames(method))
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, method.Signature), nameof(options));
+                }
+
+                if (methodsByRpcName.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
+                {
+                    if (options.AllowFlexibleNamedArgumentMatching && existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, method)))
                     {
-                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, method.Signature), nameof(options));
+                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
                     }
 
-                    if (methodsByRpcName.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
-                    {
-                        if (existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, method)))
-                        {
-                            throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
-                        }
-
-                        existingMethods.Add(method);
-                    }
-                    else
-                    {
-                        methodsByRpcName.Add(rpcMethodName, [method]);
-                    }
+                    existingMethods.Add(method);
+                }
+                else
+                {
+                    methodsByRpcName.Add(rpcMethodName, [method]);
                 }
             }
         }
 
         lock (this.SyncObject)
         {
-            foreach ((string rpcMethodName, IReadOnlyList<MethodSignatureAndTarget> methods) in resolvedMethods)
+            foreach ((string rpcMethodName, List<MethodSignatureAndTarget> methods) in methodsByRpcName)
             {
                 if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
                 {
-                    foreach (MethodSignatureAndTarget newMethod in methods)
+                    bool flexibleRouteParticipates = options.AllowFlexibleNamedArgumentMatching || existingMethods.Any(method => method.AllowFlexibleNamedArgumentMatching);
+                    if (flexibleRouteParticipates)
                     {
-                        if (existingMethods.Any(existingMethod =>
-                            (options.AllowFlexibleNamedArgumentMatching || existingMethod.AllowFlexibleNamedArgumentMatching) &&
-                            !CanShareFlexibleRpcName(existingMethod, newMethod)))
+                        foreach (MethodSignatureAndTarget newMethod in methods)
                         {
-                            throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            if (existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, newMethod)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
+                        }
+
+                        for (int i = 0; i < methods.Count; i++)
+                        {
+                            if (methods.Skip(i + 1).Any(method => !CanShareFlexibleRpcName(methods[i], method)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
                         }
                     }
                 }

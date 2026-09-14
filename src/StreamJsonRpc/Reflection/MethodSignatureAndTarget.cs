@@ -114,10 +114,13 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
         if (this.AllowFlexibleNamedArgumentMatching && request.ArgumentsAreNamed)
         {
-            for (int i = 0; i < parameters.Length; i++)
+            ReadOnlySpan<ParameterInfo> effectiveParameters = this.EffectiveParameters.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+            for (int i = 0; i < effectiveParameters.Length; i++)
             {
-                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? parameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
-                if (parameterName is null)
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? effectiveParameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null ||
+                    (effectiveParameters[i] is EffectiveParameterInfo { IsRequired: true } &&
+                     !request.TryGetArgumentByNameOrIndex(parameterName, i, typeof(object), out _)))
                 {
                     return false;
                 }
