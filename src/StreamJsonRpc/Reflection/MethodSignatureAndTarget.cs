@@ -72,7 +72,7 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     /// <summary>
     /// Gets parameters carrying the merged required and default-value semantics used for flexible binding.
     /// </summary>
-    internal ReadOnlyMemory<ParameterInfo> EffectiveParameters => this.effectiveParameters;
+    internal ReadOnlyMemory<ParameterInfo> EffectiveParameters => this.effectiveParameters ?? this.Signature.ParametersMemory;
 
     [ExcludeFromCodeCoverage]
     private string DebuggerDisplay => this.ToString();

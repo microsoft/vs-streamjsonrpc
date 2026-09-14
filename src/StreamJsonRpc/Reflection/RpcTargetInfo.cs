@@ -312,7 +312,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 {
                     if (!HasUniqueParameterNames(method))
                     {
-                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, rpcMethodName), nameof(options));
+                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, method.Signature), nameof(options));
                     }
 
                     if (methodsByRpcName.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))

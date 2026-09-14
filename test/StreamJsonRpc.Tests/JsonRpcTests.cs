@@ -2532,6 +2532,7 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.Equal(JsonRpcErrorCode.InvalidParams, ex.ErrorCode);
         Assert.Equal(typeof(AggregateException).FullName, data.TypeName);
         Assert.Equal(typeof(RpcArgumentDeserializationException).FullName, data.Inner?.TypeName);
+        Assert.Single(this.serverTraces.Ids, id => id == JsonRpc.TraceEvents.MethodArgumentDeserializationFailure);
     }
 
     [Fact]
