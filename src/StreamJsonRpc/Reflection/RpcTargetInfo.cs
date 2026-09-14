@@ -123,17 +123,17 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 MethodSignatureAndTarget? firstMatch = null;
                 foreach (MethodSignatureAndTarget entry in existingList)
                 {
-                    if (firstMatch is not null &&
-                        (!object.ReferenceEquals(entry.Target, firstMatch.Target) ||
-                         !entry.Signature.HasCancellationTokenParameter ||
-                         !entry.Signature.EqualSignature(firstMatch.Signature)))
-                    {
-                        continue;
-                    }
-
                     bool matches;
                     try
                     {
+                        if (firstMatch is not null &&
+                            (!object.ReferenceEquals(entry.Target, firstMatch.Target) ||
+                             !entry.Signature.HasCancellationTokenParameter ||
+                             !entry.Signature.EqualSignature(firstMatch.Signature)))
+                        {
+                            continue;
+                        }
+
                         matches = entry.Signature.MatchesParametersExcludingCancellationToken(parameters);
                     }
                     catch (FileNotFoundException) when (firstMatch is not null)
