@@ -292,7 +292,7 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             : null;
         HashSet<MethodInfo>? methodsWithReportedDefaultValueConflicts = null;
         var resolvedMethods = new List<(string RpcMethodName, IReadOnlyList<MethodSignatureAndTarget> Methods)>();
-        Dictionary<string, MethodSignatureAndTarget>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
+        Dictionary<string, List<MethodSignatureAndTarget>>? methodsByRpcName = options.AllowFlexibleNamedArgumentMatching ? new(StringComparer.Ordinal) : null;
         foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
         {
             string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
@@ -315,16 +315,18 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                         throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, rpcMethodName), nameof(options));
                     }
 
-                    if (methodsByRpcName.TryGetValue(rpcMethodName, out MethodSignatureAndTarget? existingMethod))
+                    if (methodsByRpcName.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
                     {
-                        if (!CanShareFlexibleRpcName(existingMethod, method))
+                        if (existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, method)))
                         {
                             throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
                         }
+
+                        existingMethods.Add(method);
                     }
                     else
                     {
-                        methodsByRpcName.Add(rpcMethodName, method);
+                        methodsByRpcName.Add(rpcMethodName, [method]);
                     }
                 }
             }

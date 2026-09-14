@@ -157,6 +157,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     }
 
     [Fact]
+    public void MultipleCancellationTokenOverloadsAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new MultipleCancelableTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
+    }
+
+    [Fact]
     public void SameTypedOverloadsWithDifferentParameterNamesAreRejected()
     {
         using var server = new JsonRpc(new MemoryStream());
@@ -324,6 +336,18 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     {
         [JsonRpcMethod("Select")]
         public string Select(int second, CancellationToken cancellationToken) => "cancelable";
+    }
+
+    private sealed class MultipleCancelableTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int value) => "non-cancelable";
+
+        [JsonRpcMethod("Select")]
+        public string SelectFirst(int value, CancellationToken cancellationToken) => "first";
+
+        [JsonRpcMethod("Select")]
+        public string SelectSecond(int value, CancellationToken cancellationToken) => "second";
     }
 
     private sealed class DifferentlyNamedOverloadedTarget
