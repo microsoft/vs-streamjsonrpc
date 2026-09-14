@@ -382,7 +382,7 @@ public partial class JsonRpcRequest : JsonRpcMessage, IJsonRpcMessageWithId
                 // The client did not supply an argument, but we have a default value to use, courtesy of the parameter itself.
                 typedArguments[i] = parameter.DefaultValue;
             }
-            else if (allowFlexibleNamedArgumentMatching)
+            else if (allowFlexibleNamedArgumentMatching && this.ArgumentNames is not null)
             {
                 typedArguments[i] = parameter.ParameterType.GetTypeInfo().IsValueType ? GetDefaultValue(parameter.ParameterType) : null;
             }

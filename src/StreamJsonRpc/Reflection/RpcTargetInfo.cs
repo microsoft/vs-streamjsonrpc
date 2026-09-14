@@ -317,6 +317,22 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         {
             foreach ((string rpcMethodName, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata> methods) in resolvedMethods)
             {
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
+                {
+                    foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in methods)
+                    {
+                        if (existingMethods.Any(existingMethod =>
+                            !existingMethod.Signature.EqualSignature(newMethod) &&
+                            (options.AllowFlexibleNamedArgumentMatching || existingMethod.AllowFlexibleNamedArgumentMatching)))
+                        {
+                            throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                        }
+                    }
+                }
+            }
+
+            foreach ((string rpcMethodName, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata> methods) in resolvedMethods)
+            {
                 bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
                 if (!alreadyExists)
                 {

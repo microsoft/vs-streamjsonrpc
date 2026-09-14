@@ -14,7 +14,6 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     private const string RequiredAttributeFullName = "System.ComponentModel.DataAnnotations.RequiredAttribute";
     private readonly Func<string, string>? parameterNameTransform;
     private readonly ParameterInfo[]? effectiveParameters;
-    private readonly ParameterBindingInfo[]? parameterBindingInfo;
 
     /// <summary>
     /// The list of RPC parameter names, or an empty list if we're using the ordinary CLR parameter names.
@@ -37,11 +36,11 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         this.AllowFlexibleNamedArgumentMatching = allowFlexibleNamedArgumentMatching;
         if (allowFlexibleNamedArgumentMatching)
         {
-            (this.parameterBindingInfo, this.HasConflictingInterfaceDefaultValues) = CreateParameterBindingInfo(signature, target);
-            this.effectiveParameters = new ParameterInfo[this.parameterBindingInfo.Length];
+            (ParameterBindingInfo[] parameterBindingInfo, this.HasConflictingInterfaceDefaultValues) = CreateParameterBindingInfo(signature, target);
+            this.effectiveParameters = new ParameterInfo[parameterBindingInfo.Length];
             for (int i = 0; i < this.effectiveParameters.Length; i++)
             {
-                ParameterBindingInfo bindingInfo = this.parameterBindingInfo[i];
+                ParameterBindingInfo bindingInfo = parameterBindingInfo[i];
                 this.effectiveParameters[i] = new EffectiveParameterInfo(signature.Parameters[i], bindingInfo.IsRequired, bindingInfo.HasDefaultValue, bindingInfo.DefaultValue);
             }
         }
@@ -60,8 +59,6 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
     internal bool HasConflictingInterfaceDefaultValues { get; }
 
     internal ReadOnlySpan<string?> ParameterNamesExcludingCancellationToken => (this.parameterNamesExcludingCancellationToken ??= GetEffectiveParameterNames(this.Signature, this.parameterNameTransform)).Span;
-
-    internal ReadOnlySpan<ParameterBindingInfo> ParameterBindings => this.parameterBindingInfo;
 
     internal ReadOnlyMemory<ParameterInfo> EffectiveParameters => this.effectiveParameters;
 

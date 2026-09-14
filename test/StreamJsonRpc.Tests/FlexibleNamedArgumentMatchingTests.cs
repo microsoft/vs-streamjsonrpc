@@ -121,7 +121,21 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         using var server = new JsonRpc(new MemoryStream());
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
-        server.AddLocalRpcTarget(new CancellationTokenOverloadedTarget(), options);
+        server.AddLocalRpcTarget(new NonCancelableTarget(), options);
+        server.AddLocalRpcTarget(new CancelableTarget(), options);
+    }
+
+    [Fact]
+    public void OverloadsAcrossSeparateRegistrationsAreRejected()
+    {
+        using var server = new JsonRpc(new MemoryStream());
+        var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
+        server.AddLocalRpcTarget(new IntegerTarget(), options);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new StringTarget(), options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Select", exception.Message);
     }
 
     private RpcPair CreateContractRpcPair<TContract>(TContract target)
@@ -188,13 +202,28 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         public string SelectFlexible(int value, int missing) => "flexible";
     }
 
-    private sealed class CancellationTokenOverloadedTarget
+    private sealed class NonCancelableTarget
     {
         [JsonRpcMethod("Select")]
         public string Select(int value) => "non-cancelable";
+    }
 
+    private sealed class CancelableTarget
+    {
         [JsonRpcMethod("Select")]
         public string Select(int value, CancellationToken cancellationToken) => "cancelable";
+    }
+
+    private sealed class IntegerTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(int value) => value.ToString();
+    }
+
+    private sealed class StringTarget
+    {
+        [JsonRpcMethod("Select")]
+        public string Select(string value) => value;
     }
 
     private sealed class RpcPair : IDisposable

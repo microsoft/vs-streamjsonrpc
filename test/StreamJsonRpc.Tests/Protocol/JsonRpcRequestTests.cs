@@ -99,6 +99,21 @@ public class JsonRpcRequestTests
         Assert.Equal(JsonRpcRequest.ArgumentMatchResult.ParameterArgumentCountMismatch, result);
     }
 
+    [Fact]
+    public void FlexibleMatchingDoesNotSupplyMissingPositionalArguments()
+    {
+        var request = new JsonRpcRequest
+        {
+            ArgumentsList = [1],
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(TwoArgumentTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.MissingArgument, result);
+    }
+
 #pragma warning disable CS0618 // Type or member is obsolete
     [Fact]
     public void ArgumentsArray_WithArray()
@@ -172,6 +187,10 @@ public class JsonRpcRequestTests
     }
 
     private static void FlexibleTarget(int value)
+    {
+    }
+
+    private static void TwoArgumentTarget(int first, int second)
     {
     }
 
