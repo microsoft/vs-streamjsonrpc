@@ -13,19 +13,37 @@ namespace StreamJsonRpc;
 internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 {
     private readonly Func<string, string>? parameterNameTransform;
+    private readonly ParameterInfo[]? effectiveParameters;
 
     /// <summary>
     /// The list of RPC parameter names, or an empty list if we're using the ordinary CLR parameter names.
     /// </summary>
     private ReadOnlyMemory<string?>? parameterNamesExcludingCancellationToken;
 
-    internal MethodSignatureAndTarget(RpcTargetMetadata.TargetMethodMetadata signature, object? target, JsonRpcMethodAttribute? attribute, SynchronizationContext? perMethodSynchronizationContext, Func<string, string>? parameterNameTransform = null)
+    internal MethodSignatureAndTarget(
+        RpcTargetMetadata.TargetMethodMetadata signature,
+        object? target,
+        JsonRpcMethodAttribute? attribute,
+        SynchronizationContext? perMethodSynchronizationContext,
+        Func<string, string>? parameterNameTransform = null,
+        bool allowFlexibleNamedArgumentMatching = false)
     {
         this.Signature = signature;
         this.Target = target;
         this.SynchronizationContext = perMethodSynchronizationContext;
         this.parameterNameTransform = parameterNameTransform;
         this.Attribute = attribute ?? signature.Attribute;
+        this.AllowFlexibleNamedArgumentMatching = allowFlexibleNamedArgumentMatching;
+        if (allowFlexibleNamedArgumentMatching)
+        {
+            (ParameterBindingInfo[] parameterBindingInfo, this.HasConflictingInterfaceDefaultValues) = CreateParameterBindingInfo(signature, target);
+            this.effectiveParameters = new ParameterInfo[parameterBindingInfo.Length];
+            for (int i = 0; i < this.effectiveParameters.Length; i++)
+            {
+                ParameterBindingInfo bindingInfo = parameterBindingInfo[i];
+                this.effectiveParameters[i] = new EffectiveParameterInfo(signature.Parameters[i], bindingInfo.IsRequired, bindingInfo.HasDefaultValue, bindingInfo.DefaultValue);
+            }
+        }
     }
 
     internal RpcTargetMetadata.TargetMethodMetadata Signature { get; }
@@ -36,7 +54,25 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
 
     internal SynchronizationContext? SynchronizationContext { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this method allows flexible matching of named arguments.
+    /// </summary>
+    internal bool AllowFlexibleNamedArgumentMatching { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether applicable interface methods declare conflicting default parameter values.
+    /// </summary>
+    internal bool HasConflictingInterfaceDefaultValues { get; }
+
+    /// <summary>
+    /// Gets the RPC parameter names after applying any parameter-name transformation.
+    /// </summary>
     internal ReadOnlySpan<string?> ParameterNamesExcludingCancellationToken => (this.parameterNamesExcludingCancellationToken ??= GetEffectiveParameterNames(this.Signature, this.parameterNameTransform)).Span;
+
+    /// <summary>
+    /// Gets parameters carrying the merged required and default-value semantics used for flexible binding.
+    /// </summary>
+    internal ReadOnlyMemory<ParameterInfo> EffectiveParameters => this.effectiveParameters ?? this.Signature.ParametersMemory;
 
     [ExcludeFromCodeCoverage]
     private string DebuggerDisplay => this.ToString();
@@ -76,6 +112,23 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
             return true;
         }
 
+        if (this.AllowFlexibleNamedArgumentMatching && request.ArgumentsAreNamed)
+        {
+            ReadOnlySpan<ParameterInfo> effectiveParameters = this.EffectiveParameters.Span[..this.Signature.TotalParamCountExcludingCancellationToken];
+            for (int i = 0; i < effectiveParameters.Length; i++)
+            {
+                string? parameterName = this.ParameterNamesExcludingCancellationToken.IsEmpty ? effectiveParameters[i].Name : this.ParameterNamesExcludingCancellationToken[i];
+                if (parameterName is null ||
+                    (effectiveParameters[i] is EffectiveParameterInfo { IsRequired: true } &&
+                     !request.TryGetArgumentByNameOrIndex(parameterName, i, typeof(object), out _)))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         if (request.ArgumentNames is not null)
         {
             HashSet<string> suppliedParameterNames = new(request.ArgumentNames, StringComparer.Ordinal);
@@ -111,6 +164,132 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         }
 
         return true;
+    }
+
+    private static (ParameterBindingInfo[] ParameterBindingInfo, bool HasConflictingInterfaceDefaultValues) CreateParameterBindingInfo(RpcTargetMetadata.TargetMethodMetadata signature, object? target)
+    {
+        IReadOnlyList<ParameterInfo> contractParameters = signature.Parameters;
+        MethodInfo implementationMethod = GetImplementationMethod(signature.MethodInfo, target) ?? signature.MethodInfo;
+        ParameterInfo[] implementationParameters = implementationMethod.GetParameters();
+        IReadOnlyList<MethodInfo> interfaceMethods = GetApplicableInterfaceMethods(signature.MethodInfo, implementationMethod, target);
+        var result = new ParameterBindingInfo[contractParameters.Count];
+        bool hasConflictingInterfaceDefaultValues = false;
+
+        for (int parameterIndex = 0; parameterIndex < result.Length; parameterIndex++)
+        {
+            ParameterInfo contractParameter = contractParameters[parameterIndex];
+            ParameterInfo implementationParameter = implementationParameters.Length > parameterIndex ? implementationParameters[parameterIndex] : contractParameter;
+            bool isRequired = JsonRpcRequest.HasRequiredAttribute(contractParameter) || JsonRpcRequest.HasRequiredAttribute(implementationParameter);
+            bool hasInterfaceDefaultValue = false;
+            bool hasConflictingDefaultValue = false;
+            object? interfaceDefaultValue = null;
+
+            foreach (MethodInfo interfaceMethod in interfaceMethods)
+            {
+                ParameterInfo[] interfaceParameters = interfaceMethod.GetParameters();
+                if (interfaceParameters.Length <= parameterIndex)
+                {
+                    continue;
+                }
+
+                ParameterInfo interfaceParameter = interfaceParameters[parameterIndex];
+                isRequired |= JsonRpcRequest.HasRequiredAttribute(interfaceParameter);
+                if (!interfaceParameter.HasDefaultValue)
+                {
+                    continue;
+                }
+
+                if (!hasInterfaceDefaultValue)
+                {
+                    hasInterfaceDefaultValue = true;
+                    interfaceDefaultValue = interfaceParameter.DefaultValue;
+                }
+                else if (!Equals(interfaceDefaultValue, interfaceParameter.DefaultValue))
+                {
+                    hasConflictingDefaultValue = true;
+                }
+            }
+
+            if (hasConflictingDefaultValue)
+            {
+                hasConflictingInterfaceDefaultValues = true;
+                hasInterfaceDefaultValue = false;
+            }
+
+            result[parameterIndex] = hasInterfaceDefaultValue
+                ? new ParameterBindingInfo(isRequired, HasDefaultValue: true, interfaceDefaultValue)
+                : hasConflictingDefaultValue || !contractParameter.HasDefaultValue
+                    ? new ParameterBindingInfo(
+                        isRequired,
+                        implementationParameter.HasDefaultValue,
+                        implementationParameter.HasDefaultValue ? implementationParameter.DefaultValue : null)
+                    : new ParameterBindingInfo(isRequired, HasDefaultValue: true, contractParameter.DefaultValue);
+        }
+
+        return (result, hasConflictingInterfaceDefaultValues);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The interface and target method metadata is already required in order to register and invoke the RPC method.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The target method metadata is already required in order to register and invoke the RPC method.")]
+    private static MethodInfo? GetImplementationMethod(MethodInfo method, object? target)
+    {
+        if (target is null)
+        {
+            return method;
+        }
+
+        if (method.DeclaringType?.IsInterface is true)
+        {
+            InterfaceMapping interfaceMapping = target.GetType().GetInterfaceMap(method.DeclaringType);
+            int methodIndex = Array.IndexOf(interfaceMapping.InterfaceMethods, method);
+            return methodIndex >= 0 ? interfaceMapping.TargetMethods[methodIndex] : null;
+        }
+
+        if (method.IsVirtual && method.DeclaringType != target.GetType())
+        {
+            MethodInfo baseDefinition = method.GetBaseDefinition();
+            for (Type? candidateType = target.GetType(); candidateType is not null; candidateType = candidateType.BaseType)
+            {
+                MethodInfo? overrideMethod = candidateType.GetTypeInfo().DeclaredMethods.FirstOrDefault(candidate =>
+                    candidate.IsVirtual && candidate.GetBaseDefinition() == baseDefinition);
+                if (overrideMethod is not null)
+                {
+                    return overrideMethod;
+                }
+            }
+        }
+
+        return method;
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2072", Justification = "The interface and target method metadata is already required in order to register and invoke the RPC method.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "The target type's implemented interfaces are already required when registering its RPC methods.")]
+    private static IReadOnlyList<MethodInfo> GetApplicableInterfaceMethods(MethodInfo contractMethod, MethodInfo implementationMethod, object? target)
+    {
+        if (contractMethod.DeclaringType?.IsInterface is true)
+        {
+            return [contractMethod];
+        }
+
+        if (target is null || implementationMethod.IsStatic)
+        {
+            return [];
+        }
+
+        List<MethodInfo>? result = null;
+        foreach (Type interfaceType in target.GetType().GetInterfaces())
+        {
+            InterfaceMapping interfaceMapping = target.GetType().GetInterfaceMap(interfaceType);
+            for (int i = 0; i < interfaceMapping.TargetMethods.Length; i++)
+            {
+                if (interfaceMapping.TargetMethods[i] == implementationMethod)
+                {
+                    (result ??= []).Add(interfaceMapping.InterfaceMethods[i]);
+                }
+            }
+        }
+
+        return result ?? (IReadOnlyList<MethodInfo>)[];
     }
 
     /// <summary>
@@ -159,5 +338,67 @@ internal class MethodSignatureAndTarget : IEquatable<MethodSignatureAndTarget>
         }
 
         return result is not null ? result : ReadOnlyMemory<string?>.Empty;
+    }
+
+    /// <summary>
+    /// Describes how a parameter should be bound when a named argument is omitted.
+    /// </summary>
+    /// <param name="IsRequired">A value indicating whether the parameter must be supplied.</param>
+    /// <param name="HasDefaultValue">A value indicating whether <paramref name="DefaultValue"/> should be used.</param>
+    /// <param name="DefaultValue">The effective declared default value.</param>
+    internal readonly record struct ParameterBindingInfo(bool IsRequired, bool HasDefaultValue, object? DefaultValue);
+
+    /// <summary>
+    /// Wraps reflected parameter metadata with the effective required and default-value semantics for RPC binding.
+    /// </summary>
+    internal sealed class EffectiveParameterInfo : ParameterInfo
+    {
+        private readonly ParameterInfo inner;
+        private readonly bool hasDefaultValue;
+        private readonly object? defaultValue;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EffectiveParameterInfo"/> class.
+        /// </summary>
+        /// <param name="inner">The reflected parameter metadata to wrap.</param>
+        /// <param name="isRequired">A value indicating whether the parameter must be supplied.</param>
+        /// <param name="hasDefaultValue">A value indicating whether <paramref name="defaultValue"/> should be used.</param>
+        /// <param name="defaultValue">The effective declared default value.</param>
+        internal EffectiveParameterInfo(ParameterInfo inner, bool isRequired, bool hasDefaultValue, object? defaultValue)
+        {
+            this.inner = inner;
+            this.IsRequired = isRequired;
+            this.hasDefaultValue = hasDefaultValue;
+            this.defaultValue = defaultValue;
+        }
+
+        public override ParameterAttributes Attributes => this.inner.Attributes;
+
+        public override object? DefaultValue => this.defaultValue;
+
+        public override bool HasDefaultValue => this.hasDefaultValue;
+
+        public override MemberInfo Member => this.inner.Member;
+
+        public override string? Name => this.inner.Name;
+
+        public override Type ParameterType => this.inner.ParameterType;
+
+        public override int Position => this.inner.Position;
+
+        public override object? RawDefaultValue => this.defaultValue;
+
+        /// <summary>
+        /// Gets a value indicating whether the parameter must be supplied.
+        /// </summary>
+        internal bool IsRequired { get; }
+
+        public override object[] GetCustomAttributes(bool inherit) => this.inner.GetCustomAttributes(inherit);
+
+        public override object[] GetCustomAttributes(Type attributeType, bool inherit) => this.inner.GetCustomAttributes(attributeType, inherit);
+
+        public override IList<CustomAttributeData> GetCustomAttributesData() => this.inner.GetCustomAttributesData();
+
+        public override bool IsDefined(Type attributeType, bool inherit) => this.inner.IsDefined(attributeType, inherit);
     }
 }

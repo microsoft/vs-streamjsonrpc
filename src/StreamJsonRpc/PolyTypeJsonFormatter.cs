@@ -519,6 +519,8 @@ public partial class PolyTypeJsonFormatter : FormatterBase, IJsonRpcMessageForma
 
         public override int ArgumentCount => this.argumentCount ?? base.ArgumentCount;
 
+        public override bool ArgumentsAreNamed => this.JsonArguments?.ValueKind is JsonValueKind.Object;
+
         public override IEnumerable<string>? ArgumentNames
         {
             get
@@ -552,6 +554,9 @@ public partial class PolyTypeJsonFormatter : FormatterBase, IJsonRpcMessageForma
             => this.TryGetTypedArguments(parameters, parameterNames: default, typedArguments);
 
         public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+            => this.TryGetTypedArguments(parameters, parameterNames, typedArguments, allowFlexibleNamedArgumentMatching: false);
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments, bool allowFlexibleNamedArgumentMatching)
         {
             using (this.formatter.TrackDeserialization(this, parameters))
             {
@@ -562,7 +567,7 @@ public partial class PolyTypeJsonFormatter : FormatterBase, IJsonRpcMessageForma
                     return ArgumentMatchResult.Success;
                 }
 
-                return base.TryGetTypedArguments(parameters, parameterNames, typedArguments);
+                return this.TryGetTypedArgumentsCore(parameters, parameterNames, typedArguments, allowFlexibleNamedArgumentMatching);
             }
         }
 

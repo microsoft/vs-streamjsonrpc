@@ -153,6 +153,32 @@ public class JsonRpcServerInteropTests : InteropTestBase
     }
 
     [Fact]
+    public async Task FlexibleUnknownArgumentPreservesNamedProgressNotifications()
+    {
+        this.InitializeServer(new JsonRpcTargetOptions
+        {
+            AllowFlexibleNamedArgumentMatching = true,
+            ClientRequiresNamedArguments = true,
+        });
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            method = nameof(Server.SendProgressNotificationParam),
+            @params = new { progress = 5, unknown = true },
+            id = "abc",
+        });
+
+        JToken notification = await this.ReceiveAsync();
+        JToken result = await this.ReceiveAsync();
+
+        Assert.Equal(JTokenType.Null, result["result"]?.Type);
+        Assert.Equal("$/progress", notification.Value<string>("method"));
+        JObject paramsObject = Assert.IsType<JObject>(notification["params"]);
+        Assert.Equal(5, paramsObject.Value<int>("token"));
+        Assert.Equal(8, paramsObject.Value<int>("value"));
+    }
+
+    [Fact]
     public async Task ServerAlwaysReturnsResultEvenIfNull()
     {
         this.InitializeServer();

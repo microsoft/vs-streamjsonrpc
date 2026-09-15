@@ -462,6 +462,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         /// The remote party violated the JSON-RPC protocol in a way that did not require terminating the connection.
         /// </summary>
         NonFatalProtocolViolation,
+
+        /// <summary>
+        /// Occurs when a target method implements interface methods that declare conflicting parameter default values.
+        /// </summary>
+        ConflictingParameterDefaultValues,
     }
 
     /// <summary>

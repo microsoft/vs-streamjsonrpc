@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Reflection;
+
 public class JsonRpcRequestTests
 {
     private static readonly IReadOnlyList<object> ArgumentsAsList = new List<object> { 4, 6, 8 };
@@ -46,6 +48,157 @@ public class JsonRpcRequestTests
         };
         Assert.Same(request.Arguments, request.ArgumentsList);
         Assert.Same(ArgumentsAsList, request.ArgumentsList);
+    }
+
+    [Fact]
+    public void FlexibleMatchingInvokesLegacyOverride()
+    {
+        var request = new LegacyJsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?> { ["unknown"] = true },
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(FlexibleTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.True(request.LegacyOverrideInvoked);
+        Assert.Equal(0, arguments[0]);
+    }
+
+    [Fact]
+    public void FlexibleMatchingInvokesLegacyOverrideWithoutParameterNames()
+    {
+        var request = new LegacyUnnamedJsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?> { ["unknown"] = true },
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(FlexibleTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.True(request.LegacyOverrideInvoked);
+        Assert.Equal(0, arguments[0]);
+    }
+
+    [Fact]
+    public void FlexibleMatchingSupportsCustomNamedArgumentRepresentation()
+    {
+        var request = new CustomNamedJsonRpcRequest();
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(OptionalTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Null(request.ArgumentNames);
+        Assert.True(request.ArgumentsAreNamed);
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.Equal(0, arguments[0]);
+    }
+
+    [Fact]
+    public void FlexibleMatchingDoesNotRelaxPositionalArgumentCount()
+    {
+        var request = new JsonRpcRequest
+        {
+            ArgumentsList = [1, 2],
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(FlexibleTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.ParameterArgumentCountMismatch, result);
+    }
+
+    [Fact]
+    public void FlexibleMatchingDoesNotSupplyMissingPositionalArguments()
+    {
+        var request = new JsonRpcRequest
+        {
+            ArgumentsList = [1],
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(TwoArgumentTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.MissingArgument, result);
+    }
+
+    [Fact]
+    public void FlexibleMatchingRequiresAttributedReflectedParameter()
+    {
+        var request = new JsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(),
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(RequiredTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.MissingArgument, result);
+    }
+
+    [Fact]
+    public void FlexibleMatchingValidatesEffectiveRequiredParameterAfterLegacySuccess()
+    {
+        var request = new SuccessfulLegacyJsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(),
+        };
+        ParameterInfo reflectedParameter = typeof(JsonRpcRequestTests).GetMethod(nameof(RequiredTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters()[0];
+        Type effectiveParameterType = typeof(JsonRpc).Assembly.GetType("StreamJsonRpc.MethodSignatureAndTarget+EffectiveParameterInfo", throwOnError: true)!;
+        var effectiveParameter = (ParameterInfo)Activator.CreateInstance(
+            effectiveParameterType,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            args: new object?[] { reflectedParameter, true, true, "fallback" },
+            culture: null)!;
+        ParameterInfo[] parameters = [effectiveParameter];
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments, allowFlexibleNamedArgumentMatching: true);
+
+        Assert.True(effectiveParameter.HasDefaultValue);
+        Assert.True(request.LegacyOverrideInvoked);
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.MissingArgument, result);
+    }
+
+    [Fact]
+    public void StrictMatchingAppliesDefaultForAttributedReflectedParameter()
+    {
+        var request = new JsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(),
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(RequiredTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, parameterNames: default, arguments);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.Equal("fallback", arguments[0]);
+    }
+
+    [Fact]
+    public void StrictMatchingHonorsCustomNamedLookupSemantics()
+    {
+        var request = new JsonRpcRequest
+        {
+            NamedArguments = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["VALUE"] = 1 },
+        };
+        ParameterInfo[] parameters = typeof(JsonRpcRequestTests).GetMethod(nameof(OptionalTarget), BindingFlags.NonPublic | BindingFlags.Static)!.GetParameters();
+        object?[] arguments = new object?[parameters.Length];
+
+        JsonRpcRequest.ArgumentMatchResult result = request.TryGetTypedArguments(parameters, arguments);
+
+        Assert.Equal(JsonRpcRequest.ArgumentMatchResult.Success, result);
+        Assert.Equal(1, arguments[0]);
     }
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -118,5 +271,66 @@ public class JsonRpcRequestTests
         Assert.Equal(
             """{"id":"id"}""",
             data.ToString());
+    }
+
+    private static void FlexibleTarget(int value)
+    {
+    }
+
+    private static void TwoArgumentTarget(int first, int second)
+    {
+    }
+
+    private static void OptionalTarget(int value = 0)
+    {
+    }
+
+    private static void RequiredTarget([System.ComponentModel.DataAnnotations.Required] string value = "fallback")
+    {
+    }
+
+    private sealed class LegacyJsonRpcRequest : JsonRpcRequest
+    {
+        internal bool LegacyOverrideInvoked { get; private set; }
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+        {
+            this.LegacyOverrideInvoked = true;
+            return base.TryGetTypedArguments(parameters, parameterNames, typedArguments);
+        }
+    }
+
+    private sealed class LegacyUnnamedJsonRpcRequest : JsonRpcRequest
+    {
+        internal bool LegacyOverrideInvoked { get; private set; }
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, Span<object?> typedArguments)
+        {
+            this.LegacyOverrideInvoked = true;
+            return base.TryGetTypedArguments(parameters, typedArguments);
+        }
+    }
+
+    private sealed class SuccessfulLegacyJsonRpcRequest : JsonRpcRequest
+    {
+        internal bool LegacyOverrideInvoked { get; private set; }
+
+        public override ArgumentMatchResult TryGetTypedArguments(ReadOnlySpan<ParameterInfo> parameters, ReadOnlySpan<string?> parameterNames, Span<object?> typedArguments)
+        {
+            this.LegacyOverrideInvoked = true;
+            typedArguments[0] = parameters[0].DefaultValue;
+            return ArgumentMatchResult.Success;
+        }
+    }
+
+    private sealed class CustomNamedJsonRpcRequest : JsonRpcRequest
+    {
+        public override int ArgumentCount => 1;
+
+        public override bool TryGetArgumentByNameOrIndex(string? name, int position, Type? typeHint, out object? value)
+        {
+            value = true;
+            return name == "unknown";
+        }
     }
 }

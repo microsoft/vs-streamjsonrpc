@@ -16,6 +16,21 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
     protected override Type FormatterExceptionType => typeof(JsonSerializationException);
 
     [Fact]
+    public async Task StrictJTokenParameterWithDefaultPreservesWholeObjectBinding()
+    {
+        this.ReinitializeRpcWithoutListening(new StrictJTokenTarget(), controlledFlushingClient: false, blockingClientSend: false, serverTargetOptions: null);
+        this.serverRpc.StartListening();
+        this.clientRpc.StartListening();
+
+        JToken result = await this.clientRpc.InvokeWithParameterObjectAsync<JToken>(
+            nameof(StrictJTokenTarget.Handle),
+            NamedArgs.Create(new { extra = 1 }),
+            this.TimeoutToken);
+
+        Assert.Equal(1, result["extra"]!.Value<int>());
+    }
+
+    [Fact]
     public async Task CustomJsonConvertersAreNotAppliedToBaseMessage()
     {
         var clientMessageFormatter = (JsonMessageFormatter)this.clientMessageFormatter;
@@ -234,5 +249,10 @@ public class JsonRpcJsonHeadersTests : JsonRpcTests
             var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(stringValue!));
             writer.WriteValue(encoded);
         }
+    }
+
+    private sealed class StrictJTokenTarget
+    {
+        public JToken Handle(JToken? value = null) => value!;
     }
 }

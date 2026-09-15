@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using StreamJsonRpc.Protocol;
@@ -295,7 +296,14 @@ internal class RpcTargetInfo : System.IAsyncDisposable
             this.TraceLocalMethodAdded(rpcMethodName, methodTarget);
             if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList))
             {
-                if (existingList.Any(m => m.Signature.EqualSignature(methodTarget.Signature)))
+                if (existingList.Any(m => m.AllowFlexibleNamedArgumentMatching && !CanShareFlexibleRpcName(m, methodTarget)))
+                {
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName));
+                }
+
+                if (existingList.Any(m =>
+                    m.Signature.HasCancellationTokenParameter == methodTarget.Signature.HasCancellationTokenParameter
+                    && m.Signature.EqualSignature(methodTarget.Signature)))
                 {
                     throw new InvalidOperationException(Resources.ConflictMethodSignatureAlreadyRegistered);
                 }
@@ -334,13 +342,83 @@ internal class RpcTargetInfo : System.IAsyncDisposable
         JsonRpcMethodAttribute? pseudoAttribute = (options.ClientRequiresNamedArguments || options.UseSingleObjectParameterDeserialization)
             ? new() { ClientRequiresNamedArguments = options.ClientRequiresNamedArguments, UseSingleObjectParameterDeserialization = options.UseSingleObjectParameterDeserialization }
             : null;
+        HashSet<MethodInfo>? methodsWithReportedDefaultValueConflicts = null;
+        var resolvedMethods = new List<(string RpcMethodName, IReadOnlyList<MethodSignatureAndTarget> Methods)>();
+        Dictionary<string, List<MethodSignatureAndTarget>> methodsByRpcName = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
+        {
+            string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
+            Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+            MethodSignatureAndTarget[] methods = item.Value.Select(method => new MethodSignatureAndTarget(
+                method,
+                target,
+                pseudoAttribute,
+                null,
+                options.ParameterNameTransform,
+                options.AllowFlexibleNamedArgumentMatching)).ToArray();
+            resolvedMethods.Add((rpcMethodName, methods));
+
+            foreach (MethodSignatureAndTarget method in methods)
+            {
+                if (options.AllowFlexibleNamedArgumentMatching && !HasUniqueParameterNames(method))
+                {
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingRequiresUniqueParameterNames, method.Signature), nameof(options));
+                }
+
+                if (methodsByRpcName.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
+                {
+                    if (options.AllowFlexibleNamedArgumentMatching && existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, method)))
+                    {
+                        throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                    }
+
+                    existingMethods.Add(method);
+                }
+                else
+                {
+                    methodsByRpcName.Add(rpcMethodName, [method]);
+                }
+            }
+        }
 
         lock (this.SyncObject)
         {
-            foreach (KeyValuePair<string, IReadOnlyList<RpcTargetMetadata.TargetMethodMetadata>> item in targetType.Methods.Concat(targetType.AliasedMethods))
+            foreach ((string rpcMethodName, List<MethodSignatureAndTarget> methods) in methodsByRpcName)
             {
-                string rpcMethodName = options.MethodNameTransform is not null ? options.MethodNameTransform(item.Key) : item.Key;
-                Requires.Argument(rpcMethodName is not null, nameof(options), nameof(JsonRpcTargetOptions.MethodNameTransform) + " delegate returned a value that is not a legal RPC method name.");
+                if (this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingMethods))
+                {
+                    bool flexibleRouteParticipates = options.AllowFlexibleNamedArgumentMatching || existingMethods.Any(method => method.AllowFlexibleNamedArgumentMatching);
+                    if (flexibleRouteParticipates)
+                    {
+                        for (int i = 0; i < existingMethods.Count; i++)
+                        {
+                            if (existingMethods.Skip(i + 1).Any(method => !CanShareFlexibleRpcName(existingMethods[i], method)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
+                        }
+
+                        foreach (MethodSignatureAndTarget newMethod in methods)
+                        {
+                            if (existingMethods.Any(existingMethod => !CanShareFlexibleRpcName(existingMethod, newMethod)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
+                        }
+
+                        for (int i = 0; i < methods.Count; i++)
+                        {
+                            if (methods.Skip(i + 1).Any(method => !CanShareFlexibleRpcName(methods[i], method)))
+                            {
+                                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, Resources.FlexibleNamedArgumentMatchingDoesNotSupportOverloads, rpcMethodName), nameof(options));
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach ((string rpcMethodName, IReadOnlyList<MethodSignatureAndTarget> methods) in resolvedMethods)
+            {
                 bool alreadyExists = this.targetRequestMethodToClrMethodMap.TryGetValue(rpcMethodName, out List<MethodSignatureAndTarget>? existingList);
                 if (!alreadyExists)
                 {
@@ -348,9 +426,18 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                 }
 
                 // Avoid adding the same metadata twice while allowing distinct wire-equivalent overloads.
-                foreach (RpcTargetMetadata.TargetMethodMetadata newMethod in item.Value)
+                foreach (MethodSignatureAndTarget signatureAndTarget in methods)
                 {
-                    var signatureAndTarget = new MethodSignatureAndTarget(newMethod, target, pseudoAttribute, null, options.ParameterNameTransform);
+                    if (signatureAndTarget.HasConflictingInterfaceDefaultValues &&
+                        (methodsWithReportedDefaultValueConflicts ??= []).Add(signatureAndTarget.Signature.MethodInfo) &&
+                        this.TraceSource.Switch.ShouldTrace(TraceEventType.Warning))
+                    {
+                        this.TraceSource.TraceEvent(
+                            TraceEventType.Warning,
+                            (int)JsonRpc.TraceEvents.ConflictingParameterDefaultValues,
+                            "RPC target method {0} implements interface methods with conflicting parameter default values. For non-required parameters, its implementation default values, or parameter type defaults when none are declared, will be used.",
+                            signatureAndTarget.Signature.MethodInfo);
+                    }
 
                     // Null forgiveness operator in use due to: https://github.com/dotnet/roslyn/issues/73274
                     if (!alreadyExists || !existingList!.Any(e => e.Equals(signatureAndTarget)))
@@ -363,12 +450,57 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     {
                         if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
                         {
-                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, newMethod);
+                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)JsonRpc.TraceEvents.LocalMethodAdded, "Skipping local RPC method \"{0}\" -> {1} because a method with a colliding signature has already been added.", rpcMethodName, signatureAndTarget.Signature);
                         }
                     }
                 }
             }
         }
+    }
+
+    private static bool CanShareFlexibleRpcName(MethodSignatureAndTarget first, MethodSignatureAndTarget second)
+    {
+        if (first.Equals(second))
+        {
+            return true;
+        }
+
+        return first.Signature.HasCancellationTokenParameter != second.Signature.HasCancellationTokenParameter
+            && first.Signature.EqualSignature(second.Signature)
+            && HaveEqualParameterNames(first, second);
+    }
+
+    private static bool HaveEqualParameterNames(MethodSignatureAndTarget first, MethodSignatureAndTarget second)
+    {
+        ReadOnlySpan<string?> firstNames = first.ParameterNamesExcludingCancellationToken;
+        ReadOnlySpan<string?> secondNames = second.ParameterNamesExcludingCancellationToken;
+        for (int i = 0; i < first.Signature.TotalParamCountExcludingCancellationToken; i++)
+        {
+            string? firstName = firstNames.IsEmpty ? first.Signature.Parameters[i].Name : firstNames[i];
+            string? secondName = secondNames.IsEmpty ? second.Signature.Parameters[i].Name : secondNames[i];
+            if (!StringComparer.Ordinal.Equals(firstName, secondName))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasUniqueParameterNames(MethodSignatureAndTarget method)
+    {
+        ReadOnlySpan<string?> effectiveNames = method.ParameterNamesExcludingCancellationToken;
+        var uniqueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < method.Signature.TotalParamCountExcludingCancellationToken; i++)
+        {
+            string? name = effectiveNames.IsEmpty ? method.Signature.Parameters[i].Name : effectiveNames[i];
+            if (name is null || !uniqueNames.Add(name))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void TraceLocalMethodAdded(string rpcMethodName, MethodSignatureAndTarget targetMethod)

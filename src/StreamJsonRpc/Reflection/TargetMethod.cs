@@ -36,6 +36,7 @@ public sealed class TargetMethod
 
         ArrayPool<object?> pool = ArrayPool<object?>.Shared;
         List<RpcArgumentDeserializationException>? argumentDeserializationExceptions = null;
+        bool hasNamedArguments = request.ArgumentsAreNamed;
         MethodSignatureAndTarget? selectedCandidateMethod = null;
         object?[]? selectedArguments = null;
         foreach (MethodSignatureAndTarget candidateMethod in candidateMethodTargets)
@@ -54,7 +55,8 @@ public sealed class TargetMethod
                 int parameterCount = candidateMethod.Signature.Parameters.Count;
                 argumentArray = pool.Rent(parameterCount);
                 Span<object?> args = argumentArray.AsSpan(0, parameterCount);
-                if (this.TryGetArguments(request, candidateMethod, args))
+                bool allowFlexibleNamedArgumentMatching = hasNamedArguments && candidateMethod.AllowFlexibleNamedArgumentMatching;
+                if (this.TryGetArguments(request, candidateMethod, args, allowFlexibleNamedArgumentMatching))
                 {
                     if (candidateMethod.Signature.HasCancellationTokenParameter)
                     {
@@ -171,8 +173,6 @@ public sealed class TargetMethod
         return this.signature.MethodInfo.Invoke(!this.signature.MethodInfo.IsStatic ? this.target : null, this.arguments);
     }
 
-    private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
-
     private void AddErrorMessage(string message)
     {
         if (this.errorMessages is null)
@@ -183,7 +183,7 @@ public sealed class TargetMethod
         this.errorMessages.Add(message);
     }
 
-    private bool TryGetArguments(JsonRpcRequest request, MethodSignatureAndTarget method, Span<object?> arguments)
+    private bool TryGetArguments(JsonRpcRequest request, MethodSignatureAndTarget method, Span<object?> arguments, bool allowFlexibleNamedArgumentMatching)
     {
         Requires.NotNull(request, nameof(request));
         Requires.NotNull(method.Signature, nameof(method));
@@ -197,16 +197,30 @@ public sealed class TargetMethod
         }
 
         // When there is a CancellationToken parameter, we require that it always be the last parameter.
-        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = method.Signature.ParametersMemory.Span[..method.Signature.TotalParamCountExcludingCancellationToken];
+        ReadOnlySpan<ParameterInfo> methodParametersExcludingCancellationToken = allowFlexibleNamedArgumentMatching
+            ? method.EffectiveParameters.Span[..method.Signature.TotalParamCountExcludingCancellationToken]
+            : method.Signature.ParametersMemory.Span[..method.Signature.TotalParamCountExcludingCancellationToken];
         Span<object?> argumentsExcludingCancellationToken = arguments.Slice(0, method.Signature.TotalParamCountExcludingCancellationToken);
         if (method.Signature.HasCancellationTokenParameter)
         {
             arguments[arguments.Length - 1] = CancellationToken.None;
         }
 
-        JsonRpcRequest.ArgumentMatchResult argumentMatch = method.ParameterNamesExcludingCancellationToken.IsEmpty
-            ? request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken)
-            : request.TryGetTypedArguments(methodParametersExcludingCancellationToken, method.ParameterNamesExcludingCancellationToken, argumentsExcludingCancellationToken);
+        JsonRpcRequest.ArgumentMatchResult argumentMatch;
+        if (allowFlexibleNamedArgumentMatching)
+        {
+            argumentMatch = request.TryGetTypedArguments(
+                methodParametersExcludingCancellationToken,
+                method.ParameterNamesExcludingCancellationToken,
+                argumentsExcludingCancellationToken,
+                allowFlexibleNamedArgumentMatching: true);
+        }
+        else
+        {
+            argumentMatch = method.ParameterNamesExcludingCancellationToken.IsEmpty
+                ? request.TryGetTypedArguments(methodParametersExcludingCancellationToken, argumentsExcludingCancellationToken)
+                : request.TryGetTypedArguments(methodParametersExcludingCancellationToken, method.ParameterNamesExcludingCancellationToken, argumentsExcludingCancellationToken);
+        }
 
         switch (argumentMatch)
         {
@@ -232,4 +246,6 @@ public sealed class TargetMethod
                 return false;
         }
     }
+
+    private string? GetParameterSignature() => this.signature is not null ? string.Join(", ", this.signature.Parameters.Select(p => p.ParameterType.Name)) : null;
 }
