@@ -23,11 +23,12 @@ internal static class UnreachableAssemblyTools
     /// <summary>
     /// Initializes an <see cref="AssemblyLoadContext"/> with UnreachableAssembly.dll loaded into it.
     /// </summary>
+    /// <param name="isCollectible">A value indicating whether the load context should be collectible.</param>
     /// <param name="testName">The name to give the <see cref="AssemblyLoadContext"/>.</param>
     /// <returns>The new <see cref="AssemblyLoadContext"/>.</returns>
-    internal static AssemblyLoadContext CreateContextForReachingTheUnreachable([CallerMemberName] string? testName = null)
+    internal static AssemblyLoadContext CreateContextForReachingTheUnreachable(bool isCollectible = false, [CallerMemberName] string? testName = null)
     {
-        AssemblyLoadContext alc = new(testName);
+        AssemblyLoadContext alc = new(testName, isCollectible);
         alc.LoadFromAssemblyPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "hidden", "UnreachableAssembly.dll"));
         return alc;
     }
