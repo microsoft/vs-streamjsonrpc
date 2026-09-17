@@ -193,6 +193,24 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";FlexibleNamedArgumentMatchingDoesNotSupportOverloads" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Flexible named argument matching cannot be enabled because multiple target methods resolve to the RPC method name "{0}".]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Non è possibile abilitare la corrispondenza flessibile degli argomenti predefiniti perché più metodi di destinazione corrispondono al nome del metodo RPC "{0}".]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";FlexibleNamedArgumentMatchingRequiresUniqueParameterNames" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Flexible named argument matching cannot be enabled because target method "{0}" has missing or duplicate RPC parameter names.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[Non è possibile abilitare la corrispondenza flessibile degli argomenti predefiniti perché il metodo di destinazione "{0}" ha nomi dei parametri RPC mancanti o duplicati.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";FormatterConfigurationLockedAfterJsonRpcAssigned" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The configuration is locked because this formatter has already been associated with a JsonRpc instance.]]></Val>
