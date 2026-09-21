@@ -193,6 +193,24 @@
         </Str>
         <Disp Icon="Str" />
       </Item>
+      <Item ItemId=";FlexibleNamedArgumentMatchingDoesNotSupportOverloads" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Flexible named argument matching cannot be enabled because multiple target methods resolve to the RPC method name "{0}".]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[여러 대상 메서드가 RPC 메서드 이름 "{0}"(으)로 확인되므로 유연한 명명된 인수 일치를 활성화할 수 없습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
+      <Item ItemId=";FlexibleNamedArgumentMatchingRequiresUniqueParameterNames" ItemType="0" PsrId="211" Leaf="true">
+        <Str Cat="Text">
+          <Val><![CDATA[Flexible named argument matching cannot be enabled because target method "{0}" has missing or duplicate RPC parameter names.]]></Val>
+          <Tgt Cat="Text" Stat="Loc" Orig="New">
+            <Val><![CDATA[대상 메서드 "{0}"에 RPC 매개 변수 이름이 없거나 중복되어 있으므로 유연한 명명된 인수 일치를 사용하도록 설정할 수 없습니다.]]></Val>
+          </Tgt>
+        </Str>
+        <Disp Icon="Str" />
+      </Item>
       <Item ItemId=";FormatterConfigurationLockedAfterJsonRpcAssigned" ItemType="0" PsrId="211" Leaf="true">
         <Str Cat="Text">
           <Val><![CDATA[The configuration is locked because this formatter has already been associated with a JsonRpc instance.]]></Val>
