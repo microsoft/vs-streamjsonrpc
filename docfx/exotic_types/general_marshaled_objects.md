@@ -91,6 +91,8 @@ Receivers SHOULD ignore unrecognized integers in the `optionalInterfaces` array.
 
 ### Invoking a method on a marshaled object
 
+For interfaces marked with <xref:StreamJsonRpc.RpcMarshalableAttribute>, StreamJsonRpc uses the CLR method name verbatim after the `$/invokeProxy/{handle}/` prefix (for example `GetCountAsync`, without stripping `Async` or changing case). The same rule applies to methods on optional interfaces after their numeric prefix. This differs from the camel-cased names used for implicit `IDisposable` and `IObserver<T>` marshaling; see [disposable](disposable.md#protocol) and [observer](observer.md#protocol). A peer implementing these protocols should use the naming convention appropriate to the marshaled interface type.
+
 The receiver of the above request can invoke `DoSomething` on the marshaled `ISomething` object with a request such as this:
 
 ```json
@@ -145,14 +147,15 @@ as in this example:
 Either side may terminate the marshalled connection in order to release resources by sending a notification to the `$/releaseMarshaledObject` method.
 The `handle` named parameter (or first positional parameter) is set to the handle of the marshaled object to be released.
 The `ownedBySender` named parameter (or second positional parameter) is set to a boolean value indicating whether the party sending this notification is also the party that sent the marshaled object.
+StreamJsonRpc sends this notification with named parameters for every formatter. Receivers may also accept positional parameters, with the handle first and `ownedBySender` second.
 
 ```json
 {
-    "jsonrpc": 20,
+    "jsonrpc": "2.0",
     "method": "$/releaseMarshaledObject",
     "params": {
         "handle": 5,
-        "ownedBySender": true,
+        "ownedBySender": true
     }
 }
 ```

@@ -58,7 +58,9 @@ which may be used as normal until the server method completes, after which the `
 This new `IProgress<T>` instance will send a special kind of notification ($/progress) whenever results are reported on the server method, using
 the token given by the client and the reported values as parameters.
 
-The progress notification will look like this:
+StreamJsonRpc sends the notification parameters in the same style as the request that supplied the `IProgress<T>` argument: named request parameters produce named progress parameters; positional request parameters (the default for most RPC calls) produce positional progress parameters. Receivers should accept either form regardless of how the original request was encoded. This behavior applies to all StreamJsonRpc formatters.
+
+For a request with named parameters, the progress notification looks like this:
 
 ```json
 {
@@ -70,6 +72,18 @@ The progress notification will look like this:
   }
 }
 ```
+
+For a request with positional parameters, the equivalent notification is:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "$/progress",
+  "params": ["some-JSON-token", { "some": "status-token" }]
+}
+```
+
+In both forms, the token identifies the progress object and the value is the reported update. The first positional parameter corresponds to `token`; the second corresponds to `value`.
 
 ## Links
 
