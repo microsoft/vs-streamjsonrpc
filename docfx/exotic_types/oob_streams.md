@@ -1,4 +1,8 @@
-# Passing @System.IO.Stream/@System.IO.Pipelines.IDuplexPipe around
+---
+title: Passing Stream/IDuplexPipe around
+---
+
+# Passing <xref:System.IO.Stream>/<xref:System.IO.Pipelines.IDuplexPipe> around
 
 JSON-RPC is great for invoking methods and passing regular data types as arguments.
 When you want to pass binary data or stream a great deal of text without encoding as a very large JSON message,
