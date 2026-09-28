@@ -58,9 +58,9 @@ which may be used as normal until the server method completes, after which the `
 This new `IProgress<T>` instance will send a special kind of notification ($/progress) whenever results are reported on the server method, using
 the token given by the client and the reported values as parameters.
 
-StreamJsonRpc sends the notification parameters in the same style as the request that supplied the `IProgress<T>` argument: named request parameters produce named progress parameters; positional request parameters (the default for most RPC calls) produce positional progress parameters. Receivers should accept either form regardless of how the original request was encoded. This behavior applies to all StreamJsonRpc formatters.
+StreamJsonRpc chooses the notification parameter style from the resolved server method's <xref:StreamJsonRpc.JsonRpcMethodAttribute.ClientRequiresNamedArguments> setting (or the <xref:StreamJsonRpc.JsonRpcTargetOptions.ClientRequiresNamedArguments> default when the method has no attribute). When this setting is `true`, reports use named parameters; otherwise, they use positional parameters. The style of the original request does not determine the style of progress notifications: either request form may yield either notification form. Receivers should accept both. This behavior applies to all StreamJsonRpc formatters.
 
-For a request with named parameters, the progress notification looks like this:
+With `ClientRequiresNamedArguments = true`, the progress notification looks like this:
 
 ```json
 {
@@ -73,7 +73,7 @@ For a request with named parameters, the progress notification looks like this:
 }
 ```
 
-For a request with positional parameters, the equivalent notification is:
+With `ClientRequiresNamedArguments = false` (the default), the equivalent notification is:
 
 ```json
 {

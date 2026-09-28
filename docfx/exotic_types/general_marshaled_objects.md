@@ -91,7 +91,7 @@ Receivers SHOULD ignore unrecognized integers in the `optionalInterfaces` array.
 
 ### Invoking a method on a marshaled object
 
-For interfaces marked with <xref:StreamJsonRpc.RpcMarshalableAttribute>, StreamJsonRpc uses the CLR method name verbatim after the `$/invokeProxy/{handle}/` prefix (for example `GetCountAsync`, without stripping `Async` or changing case). The same rule applies to methods on optional interfaces after their numeric prefix. This differs from the camel-cased names used for implicit `IDisposable` and `IObserver<T>` marshaling; see [disposable](disposable.md#protocol) and [observer](observer.md#protocol). A peer implementing these protocols should use the naming convention appropriate to the marshaled interface type.
+For interfaces marked with <xref:StreamJsonRpc.RpcMarshalableAttribute>, StreamJsonRpc uses the CLR method name verbatim after the `$/invokeProxy/{handle}/` prefix by default (for example `GetCountAsync`, without stripping `Async` or changing case). A method-level <xref:StreamJsonRpc.JsonRpcMethodAttribute> name override takes precedence: `[JsonRpcMethod("RenamedAsync")]` on `ToBeRenamedAsync` exposes `RenamedAsync` on the wire, not `ToBeRenamedAsync`. The same rules apply to methods on optional interfaces after their numeric prefix. This differs from the camel-cased names used for implicit `IDisposable` and `IObserver<T>` marshaling; see [disposable](disposable.md#protocol) and [observer](observer.md#protocol). A peer implementing these protocols should use the naming convention appropriate to the marshaled interface type and honor method-level overrides.
 
 The receiver of the above request can invoke `DoSomething` on the marshaled `ISomething` object with a request such as this:
 
