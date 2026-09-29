@@ -29,6 +29,11 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     private readonly IJsonRpcFormatterState formatterState;
 
     /// <summary>
+    /// The callbacks to subscribe to for cleaning up channels when a request completes.
+    /// </summary>
+    private readonly IJsonRpcFormatterCallbacks formatterCallbacks;
+
+    /// <summary>
     /// A map of outbound request IDs to channels that they included.
     /// </summary>
     private ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>> outboundRequestChannelMap = ImmutableDictionary<RequestId, ImmutableList<MultiplexingStream.Channel>>.Empty;
@@ -54,6 +59,11 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     private bool isDisposed;
 
     /// <summary>
+    /// A flag indicating whether this tracker has subscribed to <see cref="formatterCallbacks"/>.
+    /// </summary>
+    private int cleanupSubscribed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="MessageFormatterDuplexPipeTracker"/> class.
     /// </summary>
     /// <param name="jsonRpc">The <see cref="JsonRpc"/> instance that may be used to send or receive RPC messages related to <see cref="IAsyncEnumerable{T}"/>.</param>
@@ -65,11 +75,10 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
 
         this.formatterState = formatterState;
 
+        // The cleanup handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections that
+        // never marshal a pipe do not pay the per-response cost of raising these events.
         // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
-        IJsonRpcFormatterCallbacks callbacks = jsonRpc;
-        callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
-        callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
-        callbacks.ResponseSent += (s, e) => this.CleanUpInboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+        this.formatterCallbacks = jsonRpc;
     }
 
     /// <summary>
@@ -129,6 +138,8 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
 
         if (!this.RequestIdBeingSerialized.IsEmpty)
         {
+            this.EnsureCleanupSubscribed();
+
             ImmutableInterlocked.AddOrUpdate(
                 ref this.outboundRequestChannelMap,
                 this.RequestIdBeingSerialized,
@@ -201,6 +212,8 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
             channel = mxstream.AcceptChannel(token.Value);
             if (!this.RequestIdBeingDeserialized.IsEmpty)
             {
+                this.EnsureCleanupSubscribed();
+
                 ImmutableInterlocked.AddOrUpdate(
                     ref this.inboundRequestChannelMap,
                     this.RequestIdBeingDeserialized,
@@ -295,6 +308,23 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
         foreach (KeyValuePair<MultiplexingStream.QualifiedChannelId, MultiplexingStream.Channel> entry in openOutboundChannels)
         {
             entry.Value.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Subscribes to the events that clean up tracked channels, if not already subscribed.
+    /// </summary>
+    /// <remarks>
+    /// This must be called before adding the first entry to <see cref="outboundRequestChannelMap"/> or
+    /// <see cref="inboundRequestChannelMap"/> so that no tracked channel can be missed by the cleanup handlers.
+    /// </remarks>
+    private void EnsureCleanupSubscribed()
+    {
+        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        {
+            this.formatterCallbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
+            this.formatterCallbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+            this.formatterCallbacks.ResponseSent += (s, e) => this.CleanUpInboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
         }
     }
 

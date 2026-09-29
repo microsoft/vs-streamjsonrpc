@@ -65,6 +65,11 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     private long nextUniqueHandle;
 
     /// <summary>
+    /// A flag indicating whether this tracker has subscribed to the response callbacks.
+    /// </summary>
+    private int cleanupSubscribed;
+
+    /// <summary>
     /// A map of outbound request IDs to handles that are keys in the <see cref="marshaledObjects"/> dictionary.
     /// </summary>
     /// <remarks>
@@ -82,10 +87,9 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
 
         this.jsonRpc.AddLocalRpcMethod("$/releaseMarshaledObject", ReleaseMarshaledObjectMethodInfo, this);
 
+        // The cleanup handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections that
+        // never marshal an object do not pay the per-response cost of raising these events.
         // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
-        IJsonRpcFormatterCallbacks callbacks = jsonRpc;
-        callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
-        callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
     }
 
     /// <summary>
@@ -300,6 +304,8 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
 
         if (this.formatterState.SerializingRequest)
         {
+            this.EnsureCleanupSubscribed();
+
             ImmutableInterlocked.AddOrUpdate(
                 ref this.outboundRequestIdMarshalMap,
                 this.formatterState.SerializingMessageWithId,
@@ -556,6 +562,23 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
                 // If/when we support exposing the Context object, it may become relevant to dispose of it.
                 ////info.Context.Dispose();
             }
+        }
+    }
+
+    /// <summary>
+    /// Subscribes to the events that clean up marshaled objects, if not already subscribed.
+    /// </summary>
+    /// <remarks>
+    /// This must be called before adding the first entry to <see cref="outboundRequestIdMarshalMap"/> so that
+    /// no marshaled object can be missed by the cleanup handlers.
+    /// </remarks>
+    private void EnsureCleanupSubscribed()
+    {
+        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        {
+            IJsonRpcFormatterCallbacks callbacks = this.jsonRpc;
+            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
+            callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
         }
     }
 
