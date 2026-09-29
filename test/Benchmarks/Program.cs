@@ -11,21 +11,52 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
-        // Allow a special "manual" argument for convenient perfview.exe-monitored runs for GC pressure analysis.
-        if (args is ["manual"])
+        // Allow a special "manual" argument for convenient perfview.exe/dotnet-trace-monitored runs for GC pressure analysis.
+        // Usage: manual [formatter] [scenario] [iterations]
+#if NET
+        if (args is ["manual", ..])
         {
-            var b = new InvokeBenchmarks { Formatter = "NerdbankMessagePack" };
-            b.Setup();
-            await b.InvokeAsync_NoArgs();
+            string formatter = args.Length > 1 ? args[1] : "NerdbankMessagePack";
+            string scenario = args.Length > 2 ? args[2] : "Ping";
+            int iterations = args.Length > 3 ? int.Parse(args[3]) : 1000;
 
+            var b = new FormatterComparisonBenchmarks { Formatter = formatter };
+            b.Setup();
+            Func<Task> operation = scenario switch
+            {
+                "Ping" => () => b.Ping(),
+                "Add" => async () => await b.Add(),
+                "Large" => async () => await b.LargePayloadEcho(),
+                _ => throw new ArgumentException($"Unrecognized scenario: {scenario}"),
+            };
+
+            await operation();
+
+            // Warm up enough to get past tiered JIT before the measured region.
+            for (int i = 0; i < 200; i++)
+            {
+                await operation();
+            }
+
+            Console.WriteLine($"PID: {Environment.ProcessId}. Warmed up. Measuring {iterations} iterations of {scenario} over {formatter}.");
             await Task.Delay(2000);
 
-            for (int i = 0; i < 1000; i++)
+            long before = GC.GetTotalAllocatedBytes(precise: true);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < iterations; i++)
             {
-                await b.InvokeAsync_NoArgs();
+                await operation();
             }
+
+            sw.Stop();
+            long after = GC.GetTotalAllocatedBytes(precise: true);
+
+            Console.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds:F1} ms ({sw.Elapsed.TotalMilliseconds * 1000 / iterations:F2} us/op)");
+            Console.WriteLine($"Allocated: {(after - before) / (double)iterations:F0} B/op");
+            b.Cleanup();
         }
         else
+#endif
         {
             IConfig? config = null;
 #if DEBUG

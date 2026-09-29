@@ -361,3 +361,5 @@ MigrationBackup/
 
 # C# Dev Kit cache files
 *.lscache
+
+.perf-tools/
