@@ -2924,185 +2924,243 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         }
     }
 
-    private async Task HandleRpcAsync(JsonRpcMessage rpc)
+    private Task HandleRpcAsync(JsonRpcMessage rpc)
     {
         Requires.NotNull(rpc, nameof(rpc));
-        OutstandingCallData? data = null;
-        IDisposable? activityTracingState = null;
-        try
+
+        // Each branch is factored into its own async method so that the compiler-generated
+        // state machine for a given message only hoists the locals that branch actually uses,
+        // and so that those state machines can be pooled.
+        if (rpc is JsonRpcRequest request)
         {
-            if (rpc is JsonRpcRequest request)
-            {
-                // Set up activity tracing before any dispatch-related traces so that
-                // RequestReceived, LocalInvocation, and other server-side trace events
-                // are emitted under the correct activity ID for cross-process correlation
-                // in tools like SvcTraceViewer.
-                activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request);
-
-                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                {
-                    if (request.IsResponseExpected)
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request \"{0}\" for method \"{1}\".", request.RequestId, request.Method);
-                    }
-                    else
-                    {
-                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received notification for method \"{0}\".", request.Method);
-                    }
-                }
-
-                // We can't accept a request that requires a response if we can't write.
-                Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
-
-                JsonRpcMessage result;
-                lock (this.syncObject)
-                {
-                    if (this.requestsInDispatchCount++ == 0)
-                    {
-                        this.dispatchCompletionSource.Reset();
-                    }
-                }
-
-                try
-                {
-                    result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
-                }
-                finally
-                {
-                    lock (this.syncObject)
-                    {
-                        if (--this.requestsInDispatchCount == 0)
-                        {
-                            this.dispatchCompletionSource.Set();
-                        }
-                    }
-                }
-
-                if (request.IsResponseExpected && !this.IsDisposed)
-                {
-                    bool responseSent = false;
-                    try
-                    {
-                        await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
-                        responseSent = true;
-                    }
-                    catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
-                    {
-                    }
-                    catch (ObjectDisposedException) when (this.IsDisposed)
-                    {
-                    }
-                    catch (Exception exception)
-                    {
-                        // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
-                        if (!this.DisconnectedToken.IsCancellationRequested)
-                        {
-                            result = this.CreateErrorForResponseTransmissionFailure(request, exception);
-                            await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
-                            responseSent = true;
-                        }
-                    }
-
-                    if (responseSent)
-                    {
-                        this.OnResponseSent(result);
-                    }
-                }
-            }
-            else if (rpc is IJsonRpcMessageWithId resultOrError)
-            {
-                try
-                {
-                    JsonRpcResult? result = resultOrError as JsonRpcResult;
-                    JsonRpcError? error = resultOrError as JsonRpcError;
-
-                    lock (this.dispatcherMapLock)
-                    {
-#if NET
-                        this.resultDispatcherMap.Remove(resultOrError.RequestId, out data);
-#else
-                        if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
-                        {
-                            this.resultDispatcherMap.Remove(resultOrError.RequestId);
-                        }
-#endif
-                    }
-
-                    if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
-                    {
-                        if (result is not null)
-                        {
-                            this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.RequestId);
-                        }
-                        else if (error?.Error is object)
-                        {
-                            this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.RequestId, error.Error.Code, error.Error.Message);
-                        }
-                    }
-
-                    if (data is object)
-                    {
-                        if (data.ExpectedResultType is not null && rpc is JsonRpcResult resultMessage)
-                        {
-                            resultMessage.SetExpectedResultType(data.ExpectedResultType);
-                        }
-                        else if (rpc is JsonRpcError errorMessage && errorMessage.Error is not null)
-                        {
-                            Type? errorType = this.GetErrorDetailsDataType(errorMessage);
-                            if (errorType is not null)
-                            {
-                                errorMessage.Error.SetExpectedDataType(errorType);
-                            }
-                        }
-
-                        this.OnResponseReceived(rpc);
-
-                        // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
-                        await TaskScheduler.Default.SwitchTo(alwaysYield: true);
-                        data.CompletionHandler(rpc);
-                        data = null; // avoid invoking again if we throw later
-                    }
-                    else
-                    {
-                        this.OnResponseReceived(rpc);
-
-                        // Unexpected "response" to no request we have a record of. Raise disconnected event.
-                        this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
-                            Resources.UnexpectedResponseWithNoMatchingRequest,
-                            DisconnectedReason.RemoteProtocolViolation));
-                    }
-                }
-                catch
-                {
-                    this.OnResponseReceived(rpc);
-                    throw;
-                }
-            }
-            else
+            return this.HandleRpcRequestAsync(request).AsTask();
+        }
+        else if (rpc is IJsonRpcMessageWithId resultOrError)
+        {
+            return this.HandleRpcResponseAsync(rpc, resultOrError).AsTask();
+        }
+        else
+        {
+            try
             {
                 // Not a request or result/error. Raise disconnected event.
                 this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                     Resources.UnrecognizedIncomingJsonRpc,
                     DisconnectedReason.ParseError));
             }
+            catch (Exception ex)
+            {
+                this.OnHandleRpcFailure(ex, null);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// Dispatches an inbound request or notification and transmits its response, if one is expected.
+    /// </summary>
+    /// <param name="request">The inbound request.</param>
+    /// <returns>A task that completes when the request has been dispatched and any response transmitted.</returns>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder))]
+#endif
+    private async ValueTask HandleRpcRequestAsync(JsonRpcRequest request)
+    {
+        IDisposable? activityTracingState = null;
+        try
+        {
+            // Set up activity tracing before any dispatch-related traces so that
+            // RequestReceived, LocalInvocation, and other server-side trace events
+            // are emitted under the correct activity ID for cross-process correlation
+            // in tools like SvcTraceViewer.
+            activityTracingState = this.ActivityTracingStrategy?.ApplyInboundActivity(request);
+
+            if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+            {
+                if (request.IsResponseExpected)
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received request \"{0}\" for method \"{1}\".", request.RequestId, request.Method);
+                }
+                else
+                {
+                    this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.RequestReceived, "Received notification for method \"{0}\".", request.Method);
+                }
+            }
+
+            // We can't accept a request that requires a response if we can't write.
+            Verify.Operation(!request.IsResponseExpected || this.MessageHandler.CanWrite, Resources.StreamMustBeWriteable);
+
+            JsonRpcMessage result;
+            lock (this.syncObject)
+            {
+                if (this.requestsInDispatchCount++ == 0)
+                {
+                    this.dispatchCompletionSource.Reset();
+                }
+            }
+
+            try
+            {
+                result = await this.DispatchIncomingRequestAsync(request).ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (this.syncObject)
+                {
+                    if (--this.requestsInDispatchCount == 0)
+                    {
+                        this.dispatchCompletionSource.Set();
+                    }
+                }
+            }
+
+            if (request.IsResponseExpected && !this.IsDisposed)
+            {
+                bool responseSent = false;
+                try
+                {
+                    await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                    responseSent = true;
+                }
+                catch (OperationCanceledException) when (this.DisconnectedToken.IsCancellationRequested)
+                {
+                }
+                catch (ObjectDisposedException) when (this.IsDisposed)
+                {
+                }
+                catch (Exception exception)
+                {
+                    // Some exceptions are fatal. If we aren't already disconnected, try sending an apology to the client.
+                    if (!this.DisconnectedToken.IsCancellationRequested)
+                    {
+                        result = this.CreateErrorForResponseTransmissionFailure(request, exception);
+                        await this.SendAsync(result, this.DisconnectedToken).ConfigureAwait(false);
+                        responseSent = true;
+                    }
+                }
+
+                if (responseSent)
+                {
+                    this.OnResponseSent(result);
+                }
+            }
         }
         catch (Exception ex)
         {
-            var eventArgs = new JsonRpcDisconnectedEventArgs(
-                string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),
-                DisconnectedReason.ParseError,
-                ex);
-
-            // Fatal error. Raise disconnected event.
-            this.OnJsonRpcDisconnected(eventArgs);
-
-            // If we extracted this callback from the collection already, take care to complete it to avoid hanging our client.
-            data?.CompletionHandler(null);
+            this.OnHandleRpcFailure(ex, null);
         }
         finally
         {
             activityTracingState?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Completes the local caller that is awaiting the response to a prior outbound request.
+    /// </summary>
+    /// <param name="rpc">The inbound response message.</param>
+    /// <param name="resultOrError">The same value as <paramref name="rpc"/>, cast to <see cref="IJsonRpcMessageWithId"/>.</param>
+    /// <returns>A task that completes when the response has been handed off to the waiting caller.</returns>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder))]
+#endif
+    private async ValueTask HandleRpcResponseAsync(JsonRpcMessage rpc, IJsonRpcMessageWithId resultOrError)
+    {
+        OutstandingCallData? data = null;
+        try
+        {
+            try
+            {
+                JsonRpcResult? result = resultOrError as JsonRpcResult;
+                JsonRpcError? error = resultOrError as JsonRpcError;
+
+                lock (this.dispatcherMapLock)
+                {
+#if NET
+                    this.resultDispatcherMap.Remove(resultOrError.RequestId, out data);
+#else
+                    if (this.resultDispatcherMap.TryGetValue(resultOrError.RequestId, out data))
+                    {
+                        this.resultDispatcherMap.Remove(resultOrError.RequestId);
+                    }
+#endif
+                }
+
+                if (this.TraceSource.Switch.ShouldTrace(TraceEventType.Information))
+                {
+                    if (result is not null)
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Information, (int)TraceEvents.ReceivedResult, "Received result for request \"{0}\".", result.RequestId);
+                    }
+                    else if (error?.Error is object)
+                    {
+                        this.TraceSource.TraceEvent(TraceEventType.Warning, (int)TraceEvents.ReceivedError, "Received error response for request {0}: {1} \"{2}\": ", error.RequestId, error.Error.Code, error.Error.Message);
+                    }
+                }
+
+                if (data is object)
+                {
+                    if (data.ExpectedResultType is not null && rpc is JsonRpcResult resultMessage)
+                    {
+                        resultMessage.SetExpectedResultType(data.ExpectedResultType);
+                    }
+                    else if (rpc is JsonRpcError errorMessage && errorMessage.Error is not null)
+                    {
+                        Type? errorType = this.GetErrorDetailsDataType(errorMessage);
+                        if (errorType is not null)
+                        {
+                            errorMessage.Error.SetExpectedDataType(errorType);
+                        }
+                    }
+
+                    this.OnResponseReceived(rpc);
+
+                    // Complete the caller's request with the response asynchronously so it doesn't delay handling of other JsonRpc messages.
+                    await TaskScheduler.Default.SwitchTo(alwaysYield: true);
+                    data.CompletionHandler(rpc);
+                    data = null; // avoid invoking again if we throw later
+                }
+                else
+                {
+                    this.OnResponseReceived(rpc);
+
+                    // Unexpected "response" to no request we have a record of. Raise disconnected event.
+                    this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
+                        Resources.UnexpectedResponseWithNoMatchingRequest,
+                        DisconnectedReason.RemoteProtocolViolation));
+                }
+            }
+            catch
+            {
+                this.OnResponseReceived(rpc);
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            this.OnHandleRpcFailure(ex, data);
+        }
+    }
+
+    /// <summary>
+    /// Reports a fatal error encountered while handling an inbound message and releases any
+    /// local caller that would otherwise hang waiting for a response.
+    /// </summary>
+    /// <param name="ex">The exception that was thrown.</param>
+    /// <param name="data">The pending outbound call that was already removed from the dispatcher map, if any.</param>
+    private void OnHandleRpcFailure(Exception ex, OutstandingCallData? data)
+    {
+        var eventArgs = new JsonRpcDisconnectedEventArgs(
+            string.Format(CultureInfo.CurrentCulture, Resources.UnexpectedErrorProcessingJsonRpc, ex.Message),
+            DisconnectedReason.ParseError,
+            ex);
+
+        // Fatal error. Raise disconnected event.
+        this.OnJsonRpcDisconnected(eventArgs);
+
+        // If we extracted this callback from the collection already, take care to complete it to avoid hanging our client.
+        data?.CompletionHandler(null);
     }
 
     private void FaultPendingRequests()
