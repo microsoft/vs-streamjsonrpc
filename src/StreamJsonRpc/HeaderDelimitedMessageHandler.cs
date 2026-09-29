@@ -395,6 +395,9 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
         return span;
     }
 
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     private async ValueTask<(int? ContentLength, Encoding? ContentEncoding)?> ReadHeadersAsync(CancellationToken cancellationToken)
     {
         bool IsHeaderName(ReadOnlySequence<byte> buffer, ReadOnlySpan<byte> asciiHeaderName)
