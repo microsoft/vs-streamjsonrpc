@@ -60,6 +60,15 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     private JsonDocument? deserializingDocument;
 
     /// <summary>
+    /// A <see cref="Utf8JsonWriter"/> that is retained between messages to avoid allocating a new one for each message.
+    /// </summary>
+    /// <remarks>
+    /// This is <see langword="null" /> while a serialization is in progress, so that reentrant
+    /// serialization allocates its own writer instead of corrupting the one in use.
+    /// </remarks>
+    private Utf8JsonWriter? cachedWriter;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SystemTextJsonFormatter"/> class.
     /// </summary>
     public SystemTextJsonFormatter()
@@ -205,9 +214,20 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         using (this.TrackSerialization(message))
         {
+            // Reuse a cached writer when one is available, since allocating one per message is measurable.
+            // Interlocked ensures that reentrant serialization gets its own writer rather than corrupting ours.
+            Utf8JsonWriter? writer = Interlocked.Exchange(ref this.cachedWriter, null);
+            if (writer is null)
+            {
+                writer = new(bufferWriter, WriterOptions);
+            }
+            else
+            {
+                writer.Reset(bufferWriter);
+            }
+
             try
             {
-                using Utf8JsonWriter writer = new(bufferWriter, WriterOptions);
                 writer.WriteStartObject();
                 WriteVersion();
                 switch (message)
@@ -245,6 +265,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 }
 
                 writer.WriteEndObject();
+                writer.Flush();
+
+                // Only return the writer to the cache after a successful write,
+                // since a faulted writer may carry partial state into the next message.
+                this.cachedWriter = writer;
 
                 void WriteVersion()
                 {
