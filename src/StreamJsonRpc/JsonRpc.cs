@@ -2190,7 +2190,10 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         return errorMessage;
     }
 
-    private async Task<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
+    private async ValueTask<JsonRpcMessage?> InvokeCoreAsync(JsonRpcRequest request, Type? expectedResultType, CancellationToken cancellationToken)
     {
         Requires.NotNull(request, nameof(request));
         Assumes.NotNull(request.Method);
