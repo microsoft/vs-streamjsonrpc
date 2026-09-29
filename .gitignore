@@ -363,3 +363,4 @@ MigrationBackup/
 *.lscache
 
 .perf-tools/
+artifacts/

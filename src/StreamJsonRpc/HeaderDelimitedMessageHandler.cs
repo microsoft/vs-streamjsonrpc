@@ -167,6 +167,9 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     private IJsonRpcMessageTextFormatter TextFormatter => this.Formatter as IJsonRpcMessageTextFormatter ?? throw this.ThrowNoTextEncoder();
 
     /// <inheritdoc />
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
         (int? ContentLength, Encoding? ContentEncoding)? headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
