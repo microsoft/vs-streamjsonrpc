@@ -535,6 +535,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     }
 
+    // Utf8JsonWriter.Reset needs a buffer owner when cached, but this buffer is never written to:
+    // the writer is reset to the next caller's output before serialization resumes.
     private sealed class DiscardBufferWriter : IBufferWriter<byte>
     {
         private byte[] buffer = new byte[256];
