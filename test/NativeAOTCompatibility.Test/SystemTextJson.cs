@@ -75,7 +75,7 @@ internal static partial class SystemTextJson
     {
         var formatter = new SystemTextJsonFormatter
         {
-            JsonSerializerOptions = new() { TypeInfoResolver = SourceGenerationContext.Default },
+            JsonSerializerOptions = SourceGenerationContext.Default.Options,
         };
         formatter.RegisterGenericType<CommandOutput>();
         return formatter;
