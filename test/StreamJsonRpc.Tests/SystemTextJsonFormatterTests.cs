@@ -50,6 +50,11 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
     public void FailedSerializationDoesNotPoisonCachedWriter()
     {
         IJsonRpcMessageFactory messageFactory = this.Formatter;
+        JsonRpcRequest initialMessage = messageFactory.CreateRequestMessage();
+        initialMessage.Method = "prime";
+        using Sequence<byte> initialOutput = new();
+        this.Formatter.Serialize(initialOutput, initialMessage);
+
         JsonRpcError invalidMessage = messageFactory.CreateErrorMessage();
         using Sequence<byte> invalidOutput = new();
         Assert.Throws<JsonException>(() => this.Formatter.Serialize(invalidOutput, invalidMessage));
@@ -74,6 +79,11 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
         };
 
         IJsonRpcMessageFactory messageFactory = this.Formatter;
+        JsonRpcRequest initialMessage = messageFactory.CreateRequestMessage();
+        initialMessage.Method = "prime";
+        using Sequence<byte> initialOutput = new();
+        this.Formatter.Serialize(initialOutput, initialMessage);
+
         JsonRpcRequest firstMessage = messageFactory.CreateRequestMessage();
         firstMessage.Method = "test";
         firstMessage.Arguments = new[] { new BlockingValue("first") };
@@ -84,18 +94,20 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
 
         using Sequence<byte> firstOutput = new();
         using Sequence<byte> secondOutput = new();
-        Task firstSerialization = Task.Run(() => this.Formatter.Serialize(firstOutput, firstMessage));
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        Task firstSerialization = Task.Run(() => this.Formatter.Serialize(firstOutput, firstMessage), cancellationToken);
         try
         {
-            Assert.True(firstWriteStarted.Wait(TimeSpan.FromSeconds(10)));
-            await Task.Run(() => this.Formatter.Serialize(secondOutput, secondMessage)).WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.True(firstWriteStarted.Wait(TimeSpan.FromSeconds(10), cancellationToken));
+            Task secondSerialization = Task.Run(() => this.Formatter.Serialize(secondOutput, secondMessage), cancellationToken);
+            await WaitWithTimeoutAsync(secondSerialization, cancellationToken);
         }
         finally
         {
             allowFirstWriteToComplete.Set();
         }
 
-        await firstSerialization.WaitAsync(TimeSpan.FromSeconds(10));
+        await WaitWithTimeoutAsync(firstSerialization, cancellationToken);
 
         using JsonDocument firstDocument = JsonDocument.Parse(firstOutput);
         using JsonDocument secondDocument = JsonDocument.Parse(secondOutput);
@@ -104,6 +116,15 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
     }
 
     protected override SystemTextJsonFormatter CreateFormatter() => new();
+
+    private static async Task WaitWithTimeoutAsync(Task task, CancellationToken cancellationToken)
+    {
+        Task timeout = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+        Task completed = await Task.WhenAny(task, timeout);
+        cancellationToken.ThrowIfCancellationRequested();
+        Assert.Same(task, completed);
+        await task;
+    }
 
     [DataContract]
     public class DCSClass
@@ -141,7 +162,7 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
             if (value.Value == "first")
             {
                 this.firstWriteStarted.Set();
-                if (!this.allowFirstWriteToComplete.Wait(TimeSpan.FromSeconds(10)))
+                if (!this.allowFirstWriteToComplete.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken))
                 {
                     throw new TimeoutException();
                 }

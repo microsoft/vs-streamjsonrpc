@@ -302,22 +302,85 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <inheritdoc/>
     event EventHandler<JsonRpcMessageEventArgs> IJsonRpcFormatterCallbacks.RequestTransmissionAborted
     {
-        add => this.requestTransmissionAborted += value;
-        remove => this.requestTransmissionAborted -= value;
+        add
+        {
+            EventHandler<JsonRpcMessageEventArgs>? current;
+            EventHandler<JsonRpcMessageEventArgs>? updated;
+            do
+            {
+                current = this.requestTransmissionAborted;
+                updated = (EventHandler<JsonRpcMessageEventArgs>?)Delegate.Combine(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current) != current);
+        }
+
+        remove
+        {
+            EventHandler<JsonRpcMessageEventArgs>? current;
+            EventHandler<JsonRpcMessageEventArgs>? updated;
+            do
+            {
+                current = this.requestTransmissionAborted;
+                updated = (EventHandler<JsonRpcMessageEventArgs>?)Delegate.Remove(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current) != current);
+        }
     }
 
     /// <inheritdoc/>
     event EventHandler<JsonRpcResponseEventArgs> IJsonRpcFormatterCallbacks.ResponseReceived
     {
-        add => this.responseReceived += value;
-        remove => this.responseReceived -= value;
+        add
+        {
+            EventHandler<JsonRpcResponseEventArgs>? current;
+            EventHandler<JsonRpcResponseEventArgs>? updated;
+            do
+            {
+                current = this.responseReceived;
+                updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Combine(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.responseReceived, updated, current) != current);
+        }
+
+        remove
+        {
+            EventHandler<JsonRpcResponseEventArgs>? current;
+            EventHandler<JsonRpcResponseEventArgs>? updated;
+            do
+            {
+                current = this.responseReceived;
+                updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Remove(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.responseReceived, updated, current) != current);
+        }
     }
 
     /// <inheritdoc/>
     event EventHandler<JsonRpcResponseEventArgs> IJsonRpcFormatterCallbacks.ResponseSent
     {
-        add => this.responseSent += value;
-        remove => this.responseSent -= value;
+        add
+        {
+            EventHandler<JsonRpcResponseEventArgs>? current;
+            EventHandler<JsonRpcResponseEventArgs>? updated;
+            do
+            {
+                current = this.responseSent;
+                updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Combine(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.responseSent, updated, current) != current);
+        }
+
+        remove
+        {
+            EventHandler<JsonRpcResponseEventArgs>? current;
+            EventHandler<JsonRpcResponseEventArgs>? updated;
+            do
+            {
+                current = this.responseSent;
+                updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Remove(current, value);
+            }
+            while (Interlocked.CompareExchange(ref this.responseSent, updated, current) != current);
+        }
     }
 
     private event EventHandler<JsonRpcDisconnectedEventArgs>? DisconnectedPrivate;
