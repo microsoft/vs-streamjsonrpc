@@ -240,6 +240,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 writer.Reset(bufferWriter);
             }
 
+            bool cacheWriter = false;
             try
             {
                 writer.WriteStartObject();
@@ -290,7 +291,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
                 // Only return the writer to the cache after a successful write,
                 // since a faulted writer may carry partial state into the next message.
-                this.cachedWriter = writer;
+                cacheWriter = true;
 
                 void WriteVersion()
                 {
@@ -388,6 +389,20 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             catch (Exception ex)
             {
                 throw new JsonException(Resources.SerializationFailure, ex);
+            }
+            finally
+            {
+                if (cacheWriter)
+                {
+                    if (Interlocked.CompareExchange(ref this.cachedWriter, writer, null) is not null)
+                    {
+                        writer.Dispose();
+                    }
+                }
+                else
+                {
+                    writer.Dispose();
+                }
             }
         }
     }

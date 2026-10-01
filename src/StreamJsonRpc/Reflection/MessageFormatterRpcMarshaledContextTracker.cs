@@ -58,6 +58,8 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     private static readonly ConcurrentDictionary<Type, RpcMarshalableOptionalInterfaceAttribute[]> MarshalableOptionalInterfaces = new();
     private static readonly ConcurrentDictionary<Type, RpcMarshalableAttribute?> RpcMarshalableAttributeCache = new();
 
+    private readonly object cleanupSubscriptionLock = new object();
+
     private readonly Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)> marshaledObjects = new Dictionary<long, (RpcMarshaledContext Context, IDisposable Revert)>();
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
@@ -574,11 +576,18 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     /// </remarks>
     private void EnsureCleanupSubscribed()
     {
-        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        if (Volatile.Read(ref this.cleanupSubscribed) == 0)
         {
-            IJsonRpcFormatterCallbacks callbacks = this.jsonRpc;
-            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
-            callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+            lock (this.cleanupSubscriptionLock)
+            {
+                if (this.cleanupSubscribed == 0)
+                {
+                    IJsonRpcFormatterCallbacks callbacks = this.jsonRpc;
+                    callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
+                    callbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+                    Volatile.Write(ref this.cleanupSubscribed, 1);
+                }
+            }
         }
     }
 

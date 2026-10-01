@@ -33,6 +33,8 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// </summary>
     private readonly IJsonRpcFormatterCallbacks formatterCallbacks;
 
+    private readonly object cleanupSubscriptionLock = new object();
+
     /// <summary>
     /// A map of outbound request IDs to channels that they included.
     /// </summary>
@@ -320,11 +322,18 @@ public class MessageFormatterDuplexPipeTracker : IDisposableObservable
     /// </remarks>
     private void EnsureCleanupSubscribed()
     {
-        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        if (Volatile.Read(ref this.cleanupSubscribed) == 0)
         {
-            this.formatterCallbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
-            this.formatterCallbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
-            this.formatterCallbacks.ResponseSent += (s, e) => this.CleanUpInboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+            lock (this.cleanupSubscriptionLock)
+            {
+                if (this.cleanupSubscribed == 0)
+                {
+                    this.formatterCallbacks.RequestTransmissionAborted += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: false);
+                    this.formatterCallbacks.ResponseReceived += (s, e) => this.CleanUpOutboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+                    this.formatterCallbacks.ResponseSent += (s, e) => this.CleanUpInboundResources(e.RequestId, successful: e.IsSuccessfulResponse);
+                    Volatile.Write(ref this.cleanupSubscribed, 1);
+                }
+            }
         }
     }
 
