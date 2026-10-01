@@ -52,10 +52,10 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
     /// </summary>
     [Theory]
     [CombinatorialData]
-    public void CancellationParameterUsesBuiltInMetadata(bool replaceOptions, bool useResolverChain, bool readOnly, bool stringId)
+    public void CancellationParameterUsesBuiltInMetadata(bool useResolverChain, bool readOnly, bool stringId)
     {
         Assert.Null(ApplicationJsonContext.Default.GetTypeInfo(typeof(RequestId)));
-        JsonSerializerOptions options = replaceOptions ? new() : this.Formatter.JsonSerializerOptions;
+        JsonSerializerOptions options = new();
         if (useResolverChain)
         {
             options.TypeInfoResolverChain.Add(ApplicationJsonContext.Default);
@@ -70,39 +70,39 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
             options.MakeReadOnly();
         }
 
-        if (replaceOptions)
-        {
-            this.Formatter.JsonSerializerOptions = options;
-        }
+        this.Formatter.JsonSerializerOptions = options;
+        Assert.Equal(2, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain.Count);
+        Assert.Same(ApplicationJsonContext.Default, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain[1]);
+        Assert.False(this.Formatter.JsonSerializerOptions.IsReadOnly);
 
         this.AssertCancellationRoundtrip(stringId ? new RequestId("request") : new RequestId(42), stringId ? "\"request\"" : "42");
     }
 
     /// <summary>
-    /// Verifies resolver configuration remains possible until incoming user data is consumed.
+    /// Verifies built-in metadata is available for incoming cancellation parameters.
     /// </summary>
     [Fact]
     public void DeserializationUsesBuiltInMetadata()
     {
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = ApplicationJsonContext.Default };
         byte[] json = """{"jsonrpc":"2.0","method":"$/cancelRequest","params":{"id":42}}"""u8.ToArray();
         JsonRpcRequest request = Assert.IsAssignableFrom<JsonRpcRequest>(this.Formatter.Deserialize(new ReadOnlySequence<byte>(json)));
-        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
 
         Assert.True(request.TryGetArgumentByNameOrIndex("id", 0, typeof(RequestId), out object? actual));
         Assert.Equal(new RequestId(42), Assert.IsType<RequestId>(actual));
     }
 
     /// <summary>
-    /// Verifies results and property bags share the fallback without prematurely locking options.
+    /// Verifies results and property bags use built-in metadata.
     /// </summary>
     [Fact]
     public void ResultAndTopLevelPropertyUseBuiltInMetadata()
     {
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = ApplicationJsonContext.Default };
         IJsonRpcMessageFactory factory = this.Formatter;
         JsonRpcResult result = factory.CreateResultMessage();
         result.Result = new RequestId(42);
         Assert.True(result.TrySetTopLevelProperty("extra", new RequestId("value")));
-        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
 
         JsonRpcResult deserialized = this.Roundtrip(result);
         Assert.Equal(new RequestId(42), deserialized.GetResult<RequestId>());
@@ -111,17 +111,17 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
     }
 
     /// <summary>
-    /// Verifies user converters and resolver contracts take precedence over the built-in fallback.
+    /// Verifies callers can override built-in serialization after assigning options.
     /// </summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void CustomRequestIdSerializationTakesPrecedence(bool useResolver)
     {
-        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = ApplicationJsonContext.Default };
         if (useResolver)
         {
-            this.Formatter.JsonSerializerOptions.TypeInfoResolverChain.Add(new CustomRequestIdResolver());
+            this.Formatter.JsonSerializerOptions.TypeInfoResolverChain.Insert(0, new CustomRequestIdResolver());
         }
         else
         {
@@ -132,25 +132,54 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
     }
 
     /// <summary>
-    /// Verifies replacing previously used options resets preparation and keeps the fallback last.
+    /// Verifies built-in metadata takes precedence over previously configured resolvers.
     /// </summary>
     [Fact]
-    public void OptionsReplacementPreservesResolverPrecedence()
+    public void BuiltInMetadataPrecedesExistingResolvers()
     {
-        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
+        CustomRequestIdResolver resolver = new();
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = resolver };
+
+        Assert.Equal(2, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain.Count);
+        Assert.Same(resolver, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain[1]);
+        this.AssertCancellationRoundtrip(new RequestId(42), "42");
+    }
+
+    /// <summary>
+    /// Verifies the default reflection resolver follows the built-in source-generated metadata.
+    /// </summary>
+    [Fact]
+    public void BuiltInMetadataPrecedesDefaultReflection()
+    {
+        JsonSerializerOptions options = this.Formatter.JsonSerializerOptions;
+        Assert.Equal(2, options.TypeInfoResolverChain.Count);
+        Assert.IsNotType<DefaultJsonTypeInfoResolver>(options.TypeInfoResolverChain[0]);
+        Assert.NotNull(options.TypeInfoResolverChain[0].GetTypeInfo(typeof(RequestId), options));
+        Assert.IsType<DefaultJsonTypeInfoResolver>(options.TypeInfoResolverChain[1]);
+    }
+
+    /// <summary>
+    /// Verifies replacing used options prepends built-in metadata without duplicating it.
+    /// </summary>
+    [Fact]
+    public void OptionsReplacementPrependsBuiltInResolver()
+    {
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = ApplicationJsonContext.Default };
+        IJsonTypeInfoResolver builtInResolver = this.Formatter.JsonSerializerOptions.TypeInfoResolverChain[0];
         this.AssertCancellationRoundtrip(new RequestId(42), "42");
         Assert.True(this.Formatter.JsonSerializerOptions.IsReadOnly);
 
         JsonSerializerOptions replacement = new(this.Formatter.JsonSerializerOptions);
         CustomRequestIdResolver resolver = new();
-        replacement.TypeInfoResolverChain.Add(resolver);
+        replacement.TypeInfoResolverChain.Insert(0, resolver);
         this.Formatter.JsonSerializerOptions = replacement;
 
-        this.AssertCancellationRoundtrip(new RequestId(42), "43");
-        this.AssertCancellationRoundtrip(new RequestId(42), "43");
+        this.AssertCancellationRoundtrip(new RequestId(42), "42");
         Assert.Equal(3, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain.Count);
+        Assert.Same(builtInResolver, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain[0]);
         Assert.Same(resolver, this.Formatter.JsonSerializerOptions.TypeInfoResolverChain[1]);
-        Assert.Same(resolver, replacement.TypeInfoResolverChain[2]);
+        Assert.Same(resolver, replacement.TypeInfoResolverChain[0]);
+        Assert.Same(builtInResolver, replacement.TypeInfoResolverChain[1]);
     }
 
     /// <summary>
@@ -175,7 +204,7 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
     [Fact]
     public void MissingApplicationMetadataStillFails()
     {
-        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
+        this.Formatter.JsonSerializerOptions = new() { TypeInfoResolver = ApplicationJsonContext.Default };
         IJsonRpcMessageFactory factory = this.Formatter;
         JsonRpcRequest request = factory.CreateRequestMessage();
         request.Method = "test";
@@ -184,6 +213,24 @@ public partial class SystemTextJsonFormatterTests : FormatterTestBase<SystemText
         using Sequence<byte> sequence = new();
         JsonException exception = Assert.Throws<JsonException>(() => this.Formatter.Serialize(sequence, request));
         Assert.IsType<NotSupportedException>(exception.InnerException);
+    }
+
+    /// <summary>
+    /// Verifies replacing the resolver through the getter overrides the built-in registration.
+    /// </summary>
+    [Fact]
+    public void ResolverReplacementRemovesBuiltInMetadata()
+    {
+        this.Formatter.JsonSerializerOptions.TypeInfoResolver = ApplicationJsonContext.Default;
+        IJsonRpcMessageFactory factory = this.Formatter;
+        JsonRpcRequest request = factory.CreateRequestMessage();
+        request.Method = "$/cancelRequest";
+        request.Arguments = new Dictionary<string, object?> { ["id"] = new RequestId(42) };
+
+        using Sequence<byte> sequence = new();
+        JsonException exception = Assert.Throws<JsonException>(() => this.Formatter.Serialize(sequence, request));
+        Assert.IsType<NotSupportedException>(exception.InnerException);
+        Assert.Same(ApplicationJsonContext.Default, Assert.Single(this.Formatter.JsonSerializerOptions.TypeInfoResolverChain));
     }
 
     protected override SystemTextJsonFormatter CreateFormatter() => new();

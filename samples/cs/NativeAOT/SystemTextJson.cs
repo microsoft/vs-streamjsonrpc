@@ -34,7 +34,7 @@ partial class SystemTextJson
     {
         var formatter = new SystemTextJsonFormatter
         {
-            JsonSerializerOptions = { TypeInfoResolver = SourceGenerationContext.Default },
+            JsonSerializerOptions = new() { TypeInfoResolver = SourceGenerationContext.Default },
         };
 
         // Native AOT requires this for every value type used as T in IAsyncEnumerable<T> or IProgress<T>.

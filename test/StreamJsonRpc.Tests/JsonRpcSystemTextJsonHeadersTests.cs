@@ -33,8 +33,8 @@ public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
     [Fact]
     public async Task CancellationWithSourceGenerationReachesServer()
     {
-        Assert.IsType<SystemTextJsonFormatter>(this.clientMessageFormatter).JsonSerializerOptions.TypeInfoResolver = CancellationJsonContext.Default;
-        Assert.IsType<SystemTextJsonFormatter>(this.serverMessageFormatter).JsonSerializerOptions.TypeInfoResolver = CancellationJsonContext.Default;
+        Assert.IsType<SystemTextJsonFormatter>(this.clientMessageFormatter).JsonSerializerOptions = new() { TypeInfoResolver = CancellationJsonContext.Default };
+        Assert.IsType<SystemTextJsonFormatter>(this.serverMessageFormatter).JsonSerializerOptions = new() { TypeInfoResolver = CancellationJsonContext.Default };
 
         using CancellationTokenSource cancellationSource = new();
         Task<string> invocation = this.clientRpc.InvokeWithCancellationAsync<string>(
