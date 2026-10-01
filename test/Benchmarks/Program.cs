@@ -22,20 +22,26 @@ internal static class Program
 
             var b = new FormatterComparisonBenchmarks { Formatter = formatter };
             b.Setup();
-            Func<Task> operation = scenario switch
+            if (scenario is not ("Ping" or "Add" or "Large"))
             {
-                "Ping" => () => b.Ping(),
-                "Add" => async () => await b.Add(),
-                "Large" => async () => await b.LargePayloadEcho(),
-                _ => throw new ArgumentException($"Unrecognized scenario: {scenario}"),
-            };
-
-            await operation();
+                throw new ArgumentException($"Unrecognized scenario: {scenario}");
+            }
 
             // Warm up enough to get past tiered JIT before the measured region.
             for (int i = 0; i < 200; i++)
             {
-                await operation();
+                switch (scenario)
+                {
+                    case "Ping":
+                        await b.Ping();
+                        break;
+                    case "Add":
+                        await b.Add();
+                        break;
+                    case "Large":
+                        await b.LargePayloadEcho();
+                        break;
+                }
             }
 
             Console.WriteLine($"PID: {Environment.ProcessId}. Warmed up. Measuring {iterations} iterations of {scenario} over {formatter}.");
@@ -45,7 +51,18 @@ internal static class Program
             var sw = System.Diagnostics.Stopwatch.StartNew();
             for (int i = 0; i < iterations; i++)
             {
-                await operation();
+                switch (scenario)
+                {
+                    case "Ping":
+                        await b.Ping();
+                        break;
+                    case "Add":
+                        await b.Add();
+                        break;
+                    case "Large":
+                        await b.LargePayloadEcho();
+                        break;
+                }
             }
 
             sw.Stop();
