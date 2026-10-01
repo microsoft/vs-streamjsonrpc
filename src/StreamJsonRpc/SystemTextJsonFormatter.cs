@@ -89,6 +89,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     private interface IInboundMessage
     {
         /// <summary>
+        /// Gets or sets a value indicating whether this message originated from deserialization.
+        /// </summary>
+        bool WasDeserialized { get; set; }
+
+        /// <summary>
         /// Gets or sets the document this message was deserialized from, if any.
         /// </summary>
         JsonDocument? InboundDocument { get; set; }
@@ -202,6 +207,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             // Retain the document so a top-level property bag can be created on demand.
             // Most messages never carry top-level properties, so we avoid allocating the bag up front.
+            inboundMessage.WasDeserialized = true;
             inboundMessage.InboundDocument = document;
         }
 
@@ -276,16 +282,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                         throw new ArgumentException("Unknown message type: " + message.GetType().Name, nameof(message));
                 }
 
-                if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
-                {
-                    propertyBag.WriteProperties(writer);
-                }
-                else if (message is IInboundMessage { InboundDocument: not null })
+                if (message is IInboundMessage { WasDeserialized: true })
                 {
                     // We're re-transmitting an incoming message (remote target feature),
                     // which would require copying the original top-level properties.
                     // See the notes in TopLevelPropertyBag.WriteProperties.
                     throw new NotImplementedException();
+                }
+                else if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
+                {
+                    propertyBag.WriteProperties(writer);
                 }
 
                 writer.WriteEndObject();
@@ -659,6 +665,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
 
         /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
+
+        /// <inheritdoc/>
         public JsonDocument? InboundDocument { get; set; }
 
         internal JsonElement? JsonArguments
@@ -822,6 +831,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         }
 
         /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
+
+        /// <inheritdoc/>
         public JsonDocument? InboundDocument { get; set; }
 
         internal JsonElement? JsonResult { get; set; }
@@ -892,6 +904,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             this.formatter = formatter;
         }
+
+        /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
 
         /// <inheritdoc/>
         public JsonDocument? InboundDocument { get; set; }

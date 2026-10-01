@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json;
@@ -67,6 +68,22 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
 
         using JsonDocument document = JsonDocument.Parse(validOutput);
         Assert.Equal("test", document.RootElement.GetProperty("method").GetString());
+    }
+
+    [Fact]
+    public void SerializationAfterInboundBuffersAreReleasedDoesNotDropTopLevelProperties()
+    {
+        byte[] payload = System.Text.Encoding.UTF8.GetBytes("""{"jsonrpc":"2.0","method":"test","params":[],"extension":"value"}""");
+        JsonRpcRequest request = Assert.IsAssignableFrom<JsonRpcRequest>(this.Formatter.Deserialize(new ReadOnlySequence<byte>(payload)));
+
+        ((StreamJsonRpc.Reflection.IJsonRpcMessageBufferManager)request).DeserializationComplete(request);
+
+        JsonException exception = Assert.Throws<JsonException>(() =>
+        {
+            using Sequence<byte> output = new();
+            this.Formatter.Serialize(output, request);
+        });
+        Assert.IsType<NotImplementedException>(exception.InnerException);
     }
 
     [Fact]
