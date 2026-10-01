@@ -311,7 +311,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.requestTransmissionAborted;
                 updated = (EventHandler<JsonRpcMessageEventArgs>?)Delegate.Combine(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current), current));
         }
 
         remove
@@ -323,7 +323,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.requestTransmissionAborted;
                 updated = (EventHandler<JsonRpcMessageEventArgs>?)Delegate.Remove(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.requestTransmissionAborted, updated, current), current));
         }
     }
 
@@ -339,7 +339,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.responseReceived;
                 updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Combine(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.responseReceived, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.responseReceived, updated, current), current));
         }
 
         remove
@@ -351,7 +351,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.responseReceived;
                 updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Remove(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.responseReceived, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.responseReceived, updated, current), current));
         }
     }
 
@@ -367,7 +367,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.responseSent;
                 updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Combine(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.responseSent, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.responseSent, updated, current), current));
         }
 
         remove
@@ -379,7 +379,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 current = this.responseSent;
                 updated = (EventHandler<JsonRpcResponseEventArgs>?)Delegate.Remove(current, value);
             }
-            while (Interlocked.CompareExchange(ref this.responseSent, updated, current) != current);
+            while (!ReferenceEquals(Interlocked.CompareExchange(ref this.responseSent, updated, current), current));
         }
     }
 

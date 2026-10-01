@@ -48,6 +48,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    private static readonly IBufferWriter<byte> WriterCacheBuffer = new DiscardBufferWriter();
+
     private readonly Dictionary<Type, IGenericTypeArgStore> genericLifts = [];
 
     private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
@@ -289,6 +291,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 writer.WriteEndObject();
                 writer.Flush();
 
+                // Detach the caller-owned output buffer before retaining the writer.
+                writer.Reset(WriterCacheBuffer);
+
                 // Only return the writer to the cache after a successful write,
                 // since a faulted writer may carry partial state into the next message.
                 cacheWriter = true;
@@ -522,6 +527,44 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         internal static ReadOnlySpan<byte> data => "data"u8;
 #pragma warning restore SA1300 // Element should begin with upper-case letter
+    }
+
+    private sealed class DiscardBufferWriter : IBufferWriter<byte>
+    {
+        private byte[] buffer = new byte[256];
+
+        public void Advance(int count)
+        {
+            if ((uint)count > (uint)this.buffer.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+        }
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            this.EnsureCapacity(sizeHint);
+            return this.buffer;
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            this.EnsureCapacity(sizeHint);
+            return this.buffer;
+        }
+
+        private void EnsureCapacity(int sizeHint)
+        {
+            if (sizeHint < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sizeHint));
+            }
+
+            if (sizeHint > this.buffer.Length)
+            {
+                Array.Resize(ref this.buffer, sizeHint);
+            }
+        }
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]

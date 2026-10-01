@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -115,6 +116,18 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
         Assert.Equal("second", secondDocument.RootElement.GetProperty("params")[0].GetString());
     }
 
+    [Fact]
+    public void CachedWriterDoesNotRetainOutputBuffer()
+    {
+        WeakReference outputBuffer = SerializeToShortLivedBuffer(this.Formatter);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.KeepAlive(this.Formatter);
+
+        Assert.False(outputBuffer.IsAlive);
+    }
+
     protected override SystemTextJsonFormatter CreateFormatter() => new();
 
     private static async Task WaitWithTimeoutAsync(Task task, CancellationToken cancellationToken)
@@ -124,6 +137,16 @@ public class SystemTextJsonFormatterTests : FormatterTestBase<SystemTextJsonForm
         cancellationToken.ThrowIfCancellationRequested();
         Assert.Same(task, completed);
         await task;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference SerializeToShortLivedBuffer(SystemTextJsonFormatter formatter)
+    {
+        Sequence<byte> output = new();
+        JsonRpcRequest message = ((IJsonRpcMessageFactory)formatter).CreateRequestMessage();
+        message.Method = "test";
+        formatter.Serialize(output, message);
+        return new WeakReference(output);
     }
 
     [DataContract]
