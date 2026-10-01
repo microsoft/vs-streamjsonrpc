@@ -18,6 +18,10 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
 1. Use <xref:StreamJsonRpc.NerdbankMessagePackFormatter> or <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default <xref:StreamJsonRpc.JsonMessageFormatter>.
    <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best and safest experience and greatest set of functionality when you can use MessagePack encoding, including support for [RPC marshalable objects](../exotic_types/rpc_marshalable_objects.md) in NativeAOT scenarios, but <xref:StreamJsonRpc.SystemTextJsonFormatter> must be used when UTF-8 JSON encoding is required.
 1. Set <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType> property to the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>.
+   You can also configure multiple resolvers with `TypeInfoResolverChain`.
+   The formatter supplies fallback metadata for its built-in types, including <xref:StreamJsonRpc.RequestId> used by cancellation notifications.
+   Your resolvers take precedence and must supply metadata for your application's payload types.
+   The formatter does not add a reflection-based fallback to explicitly configured resolvers.
 1. When using <xref:StreamJsonRpc.SystemTextJsonFormatter> with <xref:System.Collections.Generic.IAsyncEnumerable`1> or <xref:System.IProgress`1>, call <xref:StreamJsonRpc.SystemTextJsonFormatter.RegisterGenericType*> for each value type used as `T`.
    Registering these types statically allows NativeAOT to generate the specialized converters; adding the constructed generic types to your <xref:System.Text.Json.Serialization.JsonSerializerContext> alone is not sufficient.
 1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata,System.Object,StreamJsonRpc.JsonRpcTargetOptions)?displayProperty=nameWithType> to add RPC target objects rather than other overloads.

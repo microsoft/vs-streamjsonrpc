@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json.Linq;
 
-public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
+public partial class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
 {
     public JsonRpcSystemTextJsonHeadersTests(ITestOutputHelper logger)
         : base(logger)
@@ -25,6 +25,25 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
         var errorData = Assert.IsType<CommonErrorData>(exception.ErrorData);
         Assert.NotNull(errorData.StackTrace);
         Assert.StrictEqual(COR_E_UNAUTHORIZEDACCESS, errorData.HResult);
+    }
+
+    /// <summary>
+    /// Verifies the remote server receives cancellation when application contexts omit RequestId.
+    /// </summary>
+    [Fact]
+    public async Task CancellationWithSourceGenerationReachesServer()
+    {
+        Assert.IsType<SystemTextJsonFormatter>(this.clientMessageFormatter).JsonSerializerOptions.TypeInfoResolver = CancellationJsonContext.Default;
+        Assert.IsType<SystemTextJsonFormatter>(this.serverMessageFormatter).JsonSerializerOptions.TypeInfoResolver = CancellationJsonContext.Default;
+
+        using CancellationTokenSource cancellationSource = new();
+        Task<string> invocation = this.clientRpc.InvokeWithCancellationAsync<string>(
+            nameof(Server.AsyncMethodWithCancellation), new[] { "a" }, cancellationSource.Token);
+        await this.server.ServerMethodReached.WaitAsync(this.TimeoutToken);
+        cancellationSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => this.server.ServerMethodCompleted.Task).WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => invocation).WithCancellation(this.TimeoutToken);
     }
 
     protected override void InitializeFormattersAndHandlers(
@@ -101,4 +120,7 @@ public class JsonRpcSystemTextJsonHeadersTests : JsonRpcTests
             writer.WriteEndObject();
         }
     }
+
+    [JsonSerializable(typeof(string))]
+    private partial class CancellationJsonContext : JsonSerializerContext;
 }

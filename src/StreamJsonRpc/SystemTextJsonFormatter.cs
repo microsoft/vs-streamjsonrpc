@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
@@ -52,7 +53,9 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
     private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
 
-    private JsonSerializerOptions massagedUserDataSerializerOptions;
+    private JsonSerializerOptions jsonSerializerOptions;
+
+    private Lazy<JsonSerializerOptions> massagedUserDataSerializerOptions;
 
     /// <summary>
     /// Retains the message currently being deserialized so that it can be disposed when we're done with it.
@@ -66,9 +69,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     {
         // Take care with any options set *here* instead of in MassageUserDataSerializerOptions,
         // because any settings made only here will be erased if the user changes the JsonSerializerOptions property.
-        this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new()
-        {
-        });
+        this.jsonSerializerOptions = new();
+        this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(this.jsonSerializerOptions);
     }
 
     /// <inheritdoc/>
@@ -81,10 +83,19 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// <summary>
     /// Gets or sets the options to use when serializing and deserializing JSON containing user data.
     /// </summary>
+    /// <remarks>
+    /// The formatter supplies fallback metadata for its built-in types after any configured resolvers.
+    /// An explicitly configured resolver must supply metadata for application types; no reflection fallback is added.
+    /// Options may be configured through this property until they are first used for user data.
+    /// </remarks>
     public JsonSerializerOptions JsonSerializerOptions
     {
-        get => this.massagedUserDataSerializerOptions;
-        set => this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new(value));
+        get => this.jsonSerializerOptions;
+        set
+        {
+            this.jsonSerializerOptions = new(value);
+            this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(this.jsonSerializerOptions);
+        }
     }
 
     /// <summary>
@@ -331,11 +342,11 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 {
                     if (declaredType is not null && value is not null)
                     {
-                        JsonSerializer.Serialize(writer, value, declaredType, this.massagedUserDataSerializerOptions);
+                        JsonSerializer.Serialize(writer, value, declaredType, this.massagedUserDataSerializerOptions.Value);
                     }
                     else
                     {
-                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions);
+                        JsonSerializer.Serialize(writer, value, this.massagedUserDataSerializerOptions.Value);
                     }
                 }
             }
@@ -369,7 +380,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// <inheritdoc/>
     private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.Dynamic(rpc, ProxyFactory, this);
 
-    private JsonSerializerOptions MassageUserDataSerializerOptions(JsonSerializerOptions options)
+    private Lazy<JsonSerializerOptions> MassageUserDataSerializerOptions(JsonSerializerOptions options)
     {
         // This is required for $/cancelRequest messages.
         options.Converters.Add(RequestIdSTJsonConverter.Instance);
@@ -386,7 +397,26 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         // Add support for serializing exceptions.
         options.Converters.Add(new ExceptionConverter(this));
 
-        return options;
+        // Defer metadata registration until callers have finished configuring the exposed options.
+        return new(() =>
+        {
+            if (options.IsReadOnly)
+            {
+                options = new(options);
+            }
+
+            // Preserve STJ's implicit reflection behavior only when no resolver was configured.
+            if (options.TypeInfoResolver is null && JsonSerializer.IsReflectionEnabledByDefault)
+            {
+                options.TypeInfoResolver = new DefaultJsonTypeInfoResolver();
+            }
+
+            // Keep the fallback last when previously used options were copied.
+            options.TypeInfoResolverChain.Remove(SourceGenerationContext.Default);
+            options.TypeInfoResolverChain.Add(SourceGenerationContext.Default);
+            options.MakeReadOnly();
+            return options;
+        });
     }
 
     private bool TryGenericMethodInvoke(Type typeArg, IGenericTypeArgAssist assist, [NotNullWhen(true)] out object? result)
@@ -451,7 +481,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     private class TopLevelPropertyBag : TopLevelPropertyBagBase
     {
         private readonly JsonDocument? incomingMessage;
-        private readonly JsonSerializerOptions jsonSerializerOptions;
+        private readonly Lazy<JsonSerializerOptions> jsonSerializerOptions;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TopLevelPropertyBag"/> class
@@ -459,7 +489,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         /// </summary>
         /// <param name="incomingMessage">The incoming message.</param>
         /// <param name="jsonSerializerOptions">The serializer options to use.</param>
-        internal TopLevelPropertyBag(JsonDocument incomingMessage, JsonSerializerOptions jsonSerializerOptions)
+        internal TopLevelPropertyBag(JsonDocument incomingMessage, Lazy<JsonSerializerOptions> jsonSerializerOptions)
             : base(isOutbound: false)
         {
             this.incomingMessage = incomingMessage;
@@ -471,7 +501,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         /// for use with an outcoming message.
         /// </summary>
         /// <param name="jsonSerializerOptions">The serializer options to use.</param>
-        internal TopLevelPropertyBag(JsonSerializerOptions jsonSerializerOptions)
+        internal TopLevelPropertyBag(Lazy<JsonSerializerOptions> jsonSerializerOptions)
             : base(isOutbound: true)
         {
             this.jsonSerializerOptions = jsonSerializerOptions;
@@ -492,7 +522,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 foreach (KeyValuePair<string, (Type DeclaredType, object? Value)> property in this.OutboundProperties)
                 {
                     writer.WritePropertyName(property.Key);
-                    JsonSerializer.Serialize(writer, property.Value.Value, this.jsonSerializerOptions);
+                    JsonSerializer.Serialize(writer, property.Value.Value, this.jsonSerializerOptions.Value);
                 }
             }
         }
@@ -501,7 +531,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             if (this.incomingMessage?.RootElement.TryGetProperty(name, out JsonElement serializedValue) is true)
             {
-                value = serializedValue.Deserialize<T>(this.jsonSerializerOptions);
+                value = serializedValue.Deserialize<T>(this.jsonSerializerOptions.Value);
                 return true;
             }
 
@@ -570,7 +600,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 // Support for opt-in to deserializing all named arguments into a single parameter.
                 if (parameters.Length == 1 && this.formatter.ApplicableMethodAttributeOnDeserializingMethod?.UseSingleObjectParameterDeserialization is true && this.JsonArguments is not null)
                 {
-                    typedArguments[0] = this.JsonArguments.Value.Deserialize(parameters[0].ParameterType, this.formatter.massagedUserDataSerializerOptions);
+                    typedArguments[0] = this.JsonArguments.Value.Deserialize(parameters[0].ParameterType, this.formatter.massagedUserDataSerializerOptions.Value);
                     return ArgumentMatchResult.Success;
                 }
 
@@ -616,7 +646,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 {
                     try
                     {
-                        value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions);
+                        value = valueElement?.Deserialize(typeHint ?? typeof(object), this.formatter.massagedUserDataSerializerOptions.Value);
                     }
                     catch (Exception ex)
                     {
@@ -695,7 +725,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
             return this.JsonResult is null
                 ? (T)this.Result!
-                : this.JsonResult.Value.Deserialize<T>(this.formatter.massagedUserDataSerializerOptions)!;
+                : this.JsonResult.Value.Deserialize<T>(this.formatter.massagedUserDataSerializerOptions.Value)!;
         }
 
         protected internal override void SetExpectedResultType(Type resultType)
@@ -706,7 +736,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 using (this.formatter.TrackDeserialization(this))
                 {
-                    this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions);
+                    this.Result = this.JsonResult.Value.Deserialize(resultType, this.formatter.massagedUserDataSerializerOptions.Value);
                 }
 
                 this.JsonResult = default;
@@ -781,14 +811,14 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
                 try
                 {
-                    return this.JsonData.Value.Deserialize(dataType, this.formatter.massagedUserDataSerializerOptions);
+                    return this.JsonData.Value.Deserialize(dataType, this.formatter.massagedUserDataSerializerOptions.Value);
                 }
                 catch (JsonException)
                 {
                     // Deserialization failed. Try returning array/dictionary based primitive objects.
                     try
                     {
-                        return this.JsonData.Value.Deserialize<object>(this.formatter.massagedUserDataSerializerOptions);
+                        return this.JsonData.Value.Deserialize<object>(this.formatter.massagedUserDataSerializerOptions.Value);
                     }
                     catch (JsonException)
                     {
@@ -1114,7 +1144,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 }
 
                 JsonNode? jsonNode = JsonNode.Parse(ref reader) ?? throw new JsonException("Unexpected null");
-                SerializationInfo? info = new SerializationInfo(typeToConvert, new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions));
+                SerializationInfo? info = new SerializationInfo(typeToConvert, new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions.Value));
                 foreach (KeyValuePair<string, JsonNode?> property in jsonNode.AsObject())
                 {
                     info.AddSafeValue(property.Key, property.Value);
@@ -1142,7 +1172,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     return;
                 }
 
-                SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions));
+                SerializationInfo info = new SerializationInfo(value.GetType(), new JsonConverterFormatter(this.formatter.massagedUserDataSerializerOptions.Value));
                 ExceptionSerializationHelpers.Serialize(value, info);
                 writer.WriteStartObject();
                 foreach (SerializationEntry element in info.GetSafeMembers())
