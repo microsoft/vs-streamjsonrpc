@@ -147,7 +147,7 @@ public partial class RequestIdTests : TestBase
     [Fact]
     public void ConverterWriteRejectsNullWriter()
     {
-        RequestIdSTJsonConverter converter = new();
+        SystemTextJsonFormatter.RequestIdSTJsonConverter converter = new();
         Assert.Throws<ArgumentNullException>("writer", () => converter.Write(null!, new RequestId(42), new JsonSerializerOptions()));
     }
 
