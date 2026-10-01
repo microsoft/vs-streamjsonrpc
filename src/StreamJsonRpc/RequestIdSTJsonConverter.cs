@@ -9,7 +9,10 @@ namespace StreamJsonRpc;
 /// <summary>
 /// A System.Text.Json converter for <see cref="RequestId"/>.
 /// </summary>
-internal class RequestIdSTJsonConverter : JsonConverter<RequestId>
+/// <remarks>
+/// Enables <see cref="RequestId"/> to be included in consumer source-generated <see cref="JsonSerializerContext"/> implementations.
+/// </remarks>
+public class RequestIdSTJsonConverter : JsonConverter<RequestId>
 {
     /// <summary>
     /// A singleton that can be used to reduce allocations.
@@ -31,6 +34,8 @@ internal class RequestIdSTJsonConverter : JsonConverter<RequestId>
     /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, RequestId value, JsonSerializerOptions options)
     {
+        Requires.NotNull(writer);
+
         if (value.Number is long idNumber)
         {
             writer.WriteNumberValue(idNumber);
