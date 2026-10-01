@@ -12,7 +12,7 @@ namespace StreamJsonRpc;
 /// <remarks>
 /// Enables <see cref="RequestId"/> to be included in consumer source-generated <see cref="JsonSerializerContext"/> implementations.
 /// </remarks>
-public class RequestIdSTJsonConverter : JsonConverter<RequestId>
+public sealed class RequestIdSTJsonConverter : JsonConverter<RequestId>
 {
     /// <summary>
     /// A singleton that can be used to reduce allocations.
