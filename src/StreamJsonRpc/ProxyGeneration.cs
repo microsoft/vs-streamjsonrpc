@@ -24,9 +24,9 @@ namespace StreamJsonRpc;
 internal static class ProxyGeneration
 {
 #if NET
-    private static readonly List<(AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = [];
+    private static readonly List<(AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, bool IsCollectible, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = [];
 #else
-    private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, ModuleBuilder)>();
+    private static readonly List<(ImmutableHashSet<AssemblyName> SkipVisibilitySet, bool IsCollectible, ModuleBuilder Builder)> TransparentProxyModuleBuilderByVisibilityCheck = new List<(ImmutableHashSet<AssemblyName>, bool, ModuleBuilder)>();
 #endif
     private static readonly object BuilderLock = new object();
     private static readonly AssemblyName ProxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "StreamJsonRpc_Proxies_{0}", Guid.NewGuid()));
@@ -115,13 +115,9 @@ internal static class ProxyGeneration
                     .Append(typeof(System.IAsyncDisposable))
                     .Distinct(),
             ];
-            ModuleBuilder proxyModuleBuilder = GetProxyModuleBuilder(proxyInterfaces);
-
-            TypeBuilder proxyTypeBuilder = proxyModuleBuilder.DefineType(
-                string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", contractInterface.FullName, Guid.NewGuid()),
-                TypeAttributes.Public,
-                typeof(object),
-                proxyInterfaces);
+            (ModuleBuilder proxyModuleBuilder, TypeBuilder proxyTypeBuilder) = DefineProxyType(
+                proxyInterfaces,
+                string.Format(CultureInfo.InvariantCulture, "_proxy_{0}_{1}", contractInterface.FullName, Guid.NewGuid()));
             Type proxyType = proxyTypeBuilder;
 
             const FieldAttributes fieldAttributes = FieldAttributes.Private | FieldAttributes.InitOnly;
@@ -867,21 +863,50 @@ internal static class ProxyGeneration
     }
 
     /// <summary>
-    /// Gets the <see cref="ModuleBuilder"/> to use for generating a proxy for the given type.
+    /// Defines a proxy type that supports contracts referencing collectible assemblies.
     /// </summary>
     /// <param name="interfaceTypes">The interface types to generate a proxy for.</param>
-    /// <returns>The <see cref="ModuleBuilder"/> to use.</returns>
-    private static ModuleBuilder GetProxyModuleBuilder(Type[] interfaceTypes)
+    /// <param name="typeName">The name of the proxy type.</param>
+    /// <returns>The module and type builders for the proxy.</returns>
+    private static (ModuleBuilder ModuleBuilder, TypeBuilder TypeBuilder) DefineProxyType(Type[] interfaceTypes, string typeName)
+    {
+        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(
+                AssemblyNameEqualityComparer.Instance,
+                interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
+            .Add(typeof(ProxyGeneration).Assembly.GetName());
+
+        // A non-collectible assembly cannot reference a collectible assembly. Rather than pre-scanning the contract
+        // graph to detect this, first try the ordinary module and let the runtime reject the type definition when necessary.
+        try
+        {
+            return DefineProxyType(interfaceTypes, typeName, skipVisibilityCheckAssemblies, isCollectible: false);
+        }
+        catch (NotSupportedException)
+        {
+            return DefineProxyType(interfaceTypes, typeName, skipVisibilityCheckAssemblies, isCollectible: true);
+        }
+    }
+
+    private static (ModuleBuilder ModuleBuilder, TypeBuilder TypeBuilder) DefineProxyType(
+        Type[] interfaceTypes,
+        string typeName,
+        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies,
+        bool isCollectible)
+    {
+        ModuleBuilder moduleBuilder = GetProxyModuleBuilder(interfaceTypes, skipVisibilityCheckAssemblies, isCollectible);
+        return (moduleBuilder, moduleBuilder.DefineType(typeName, TypeAttributes.Public, typeof(object), interfaceTypes));
+    }
+
+    private static ModuleBuilder GetProxyModuleBuilder(Type[] interfaceTypes, ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies, bool isCollectible)
     {
         Requires.NotNull(interfaceTypes, nameof(interfaceTypes));
+        Requires.NotNull(skipVisibilityCheckAssemblies, nameof(skipVisibilityCheckAssemblies));
         Assumes.True(Monitor.IsEntered(BuilderLock));
 
         // Dynamic assemblies are relatively expensive. We want to create as few as possible.
         // For each set of skip visibility check assemblies, we need a dynamic assembly that skips at *least* that set.
         // The CLR will not honor any additions to that set once the first generated type is closed.
         // We maintain a dictionary to point at dynamic modules based on the set of skip visibility check assemblies they were generated with.
-        ImmutableHashSet<AssemblyName> skipVisibilityCheckAssemblies = ImmutableHashSet.CreateRange(AssemblyNameEqualityComparer.Instance, interfaceTypes.SelectMany(t => SkipClrVisibilityChecks.GetSkipVisibilityChecksRequirements(t.GetTypeInfo())))
-            .Add(typeof(ProxyGeneration).Assembly.GetName());
 #if NET
         // We have to key the dynamic assembly by ALC as well, since callers may set a custom contextual reflection context
         // that influences how the assembly will resolve its type references.
@@ -890,18 +915,17 @@ internal static class ProxyGeneration
             ?? AssemblyLoadContext.GetLoadContext(interfaceTypes[0].Assembly)
             ?? AssemblyLoadContext.GetLoadContext(typeof(ProxyGeneration).Assembly)
             ?? throw new Exception("No ALC for our own assembly!");
-        foreach ((AssemblyLoadContext AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
+        foreach ((AssemblyLoadContext AssemblyLoadContext, ImmutableHashSet<AssemblyName> SkipVisibilitySet, bool IsCollectible, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
             if (existingSet.AssemblyLoadContext != alc)
             {
                 continue;
             }
-
 #else
-        foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
+        foreach ((ImmutableHashSet<AssemblyName> SkipVisibilitySet, bool IsCollectible, ModuleBuilder Builder) existingSet in TransparentProxyModuleBuilderByVisibilityCheck)
         {
 #endif
-            if (existingSet.SkipVisibilitySet.IsSupersetOf(skipVisibilityCheckAssemblies))
+            if (existingSet.IsCollectible == isCollectible && existingSet.SkipVisibilitySet.IsSupersetOf(skipVisibilityCheckAssemblies))
             {
                 return existingSet.Builder;
             }
@@ -917,28 +941,28 @@ internal static class ProxyGeneration
         using (alc.EnterContextualReflection())
 #endif
         {
-            assemblyBuilder = CreateProxyAssemblyBuilder();
+            assemblyBuilder = CreateProxyAssemblyBuilder(isCollectible);
         }
 
         ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("rpcProxies");
         var skipClrVisibilityChecks = new SkipClrVisibilityChecks(assemblyBuilder, moduleBuilder);
         skipClrVisibilityChecks.SkipVisibilityChecksFor(skipVisibilityCheckAssemblies);
 #if NET
-        TransparentProxyModuleBuilderByVisibilityCheck.Add((alc, skipVisibilityCheckAssemblies, moduleBuilder));
+        TransparentProxyModuleBuilderByVisibilityCheck.Add((alc, skipVisibilityCheckAssemblies, isCollectible, moduleBuilder));
 #else
-        TransparentProxyModuleBuilderByVisibilityCheck.Add((skipVisibilityCheckAssemblies, moduleBuilder));
+        TransparentProxyModuleBuilderByVisibilityCheck.Add((skipVisibilityCheckAssemblies, isCollectible, moduleBuilder));
 #endif
 
         return moduleBuilder;
     }
 
-    private static AssemblyBuilder CreateProxyAssemblyBuilder()
+    private static AssemblyBuilder CreateProxyAssemblyBuilder(bool isCollectible)
     {
         var proxyAssemblyName = new AssemblyName(string.Format(CultureInfo.InvariantCulture, "rpcProxies_{0}", Guid.NewGuid()));
 #if SaveAssembly
         return AssemblyBuilder.DefineDynamicAssembly(proxyAssemblyName, AssemblyBuilderAccess.RunAndSave);
 #else
-        return AssemblyBuilder.DefineDynamicAssembly(proxyAssemblyName, AssemblyBuilderAccess.RunAndCollect);
+        return AssemblyBuilder.DefineDynamicAssembly(proxyAssemblyName, isCollectible ? AssemblyBuilderAccess.RunAndCollect : AssemblyBuilderAccess.Run);
 #endif
     }
 
