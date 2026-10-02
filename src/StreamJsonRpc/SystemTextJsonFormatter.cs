@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Buffers;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -415,6 +416,52 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 $"The converter for generic type argument '{genericTypeArg}' could not be created dynamically. "
                 + $"When using Native AOT, call {nameof(this.RegisterGenericType)}<T>() with this type argument before the formatter is initialized.",
                 ex);
+        }
+    }
+
+    /// <summary>
+    /// A System.Text.Json converter for <see cref="RequestId"/>.
+    /// </summary>
+    /// <remarks>
+    /// Enables <see cref="RequestId"/> to be included in consumer source-generated <see cref="JsonSerializerContext"/> implementations.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class RequestIdSTJsonConverter : JsonConverter<RequestId>
+    {
+        /// <summary>
+        /// A singleton that can be used to reduce allocations.
+        /// </summary>
+        internal static readonly RequestIdSTJsonConverter Instance = new();
+
+        /// <inheritdoc/>
+        public override RequestId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType switch
+            {
+                JsonTokenType.Number => new RequestId(reader.GetInt64()),
+                JsonTokenType.String => new RequestId(reader.GetString()),
+                JsonTokenType.Null => RequestId.Null,
+                _ => throw new JsonException("Unexpected token type for id property: " + reader.TokenType),
+            };
+        }
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, RequestId value, JsonSerializerOptions options)
+        {
+            Requires.NotNull(writer);
+
+            if (value.Number is long idNumber)
+            {
+                writer.WriteNumberValue(idNumber);
+            }
+            else if (value.String is string idString)
+            {
+                writer.WriteStringValue(idString);
+            }
+            else
+            {
+                writer.WriteNullValue();
+            }
         }
     }
 
