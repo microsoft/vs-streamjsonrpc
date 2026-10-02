@@ -63,6 +63,11 @@ public class MessageFormatterEnumerableTracker
     private readonly object syncObject = new object();
     private long nextToken;
 
+    /// <summary>
+    /// A flag indicating whether this tracker has subscribed to the response callbacks.
+    /// </summary>
+    private int cleanupSubscribed;
+
     /// <inheritdoc cref="MessageFormatterEnumerableTracker(JsonRpc, IJsonRpcFormatterState, MessageFormatterRpcMarshaledContextTracker?)"/>
     public MessageFormatterEnumerableTracker(JsonRpc jsonRpc, IJsonRpcFormatterState formatterState)
         : this(jsonRpc, formatterState, null)
@@ -87,10 +92,9 @@ public class MessageFormatterEnumerableTracker
         jsonRpc.AddLocalRpcMethod(DisposeMethodName, OnDisposeAsyncMethodInfo, this);
         this.formatterState = formatterState;
 
+        // The cleanup handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections that
+        // never marshal an IAsyncEnumerable<T> do not pay the per-response cost of raising these events.
         // We don't offer a way to remove these handlers because this object should has a lifetime closely tied to the JsonRpc object anyway.
-        IJsonRpcFormatterCallbacks callbacks = jsonRpc;
-        callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
-        callbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
     }
 
     private interface IGeneratingEnumeratorTracker : System.IAsyncDisposable
@@ -135,6 +139,8 @@ public class MessageFormatterEnumerableTracker
             // when an INBOUND response with the same ID is received.
             if (this.formatterState.SerializingRequest)
             {
+                this.EnsureCleanupSubscribed();
+
                 if (!this.generatorTokensByRequestId.TryGetValue(this.formatterState.SerializingMessageWithId, out ImmutableList<long>? tokens))
                 {
                     tokens = ImmutableList<long>.Empty;
@@ -198,6 +204,23 @@ public class MessageFormatterEnumerableTracker
         }
 
         return generator.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Subscribes to the events that clean up tracked enumerables, if not already subscribed.
+    /// </summary>
+    /// <remarks>
+    /// This must be called before adding the first entry to <see cref="generatorTokensByRequestId"/> so that
+    /// no tracked resource can be missed by the cleanup handlers.
+    /// </remarks>
+    private void EnsureCleanupSubscribed()
+    {
+        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        {
+            IJsonRpcFormatterCallbacks callbacks = this.jsonRpc;
+            callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
+            callbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
+        }
     }
 
     private void CleanUpResources(RequestId outboundRequestId)

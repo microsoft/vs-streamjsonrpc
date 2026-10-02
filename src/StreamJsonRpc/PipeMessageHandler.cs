@@ -181,6 +181,9 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// Thrown if <see cref="ReadResult.IsCompleted"/> before we have <paramref name="requiredBytes"/> bytes.
     /// Not thrown if 0 bytes were read and <paramref name="allowEmpty"/> is <see langword="true"/>.
     /// </exception>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     protected async ValueTask<ReadResult> ReadAtLeastAsync(int requiredBytes, bool allowEmpty, CancellationToken cancellationToken)
     {
         Assumes.NotNull(this.Reader);
@@ -223,6 +226,9 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The deserialized message.</returns>
     /// <exception cref="NotSupportedException">Thrown if <paramref name="specificEncoding"/> is non-null and the formatter does not implement the appropriate interface to supply the encoding.</exception>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     private protected async ValueTask<JsonRpcMessage> DeserializeMessageAsync(int contentLength, Encoding? specificEncoding, Encoding? defaultEncoding, CancellationToken cancellationToken)
     {
         Requires.Range(contentLength > 0, nameof(contentLength));

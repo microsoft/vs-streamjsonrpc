@@ -49,6 +49,8 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// </summary>
     private static readonly Encoding DefaultEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    private static readonly IBufferWriter<byte> WriterCacheBuffer = new DiscardBufferWriter();
+
     private readonly Dictionary<Type, IGenericTypeArgStore> genericLifts = [];
 
     private readonly ToStringHelper serializationToStringHelper = new ToStringHelper();
@@ -61,6 +63,15 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     private JsonDocument? deserializingDocument;
 
     /// <summary>
+    /// A <see cref="Utf8JsonWriter"/> that is retained between messages to avoid allocating a new one for each message.
+    /// </summary>
+    /// <remarks>
+    /// This is <see langword="null" /> while a serialization is in progress, so that reentrant
+    /// serialization allocates its own writer instead of corrupting the one in use.
+    /// </remarks>
+    private Utf8JsonWriter? cachedWriter;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SystemTextJsonFormatter"/> class.
     /// </summary>
     public SystemTextJsonFormatter()
@@ -70,6 +81,23 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         this.massagedUserDataSerializerOptions = this.MassageUserDataSerializerOptions(new()
         {
         });
+    }
+
+    /// <summary>
+    /// An interface implemented by all our inbound message types so that the document they were
+    /// deserialized from can be retained without allocating a top-level property bag to hold it.
+    /// </summary>
+    private interface IInboundMessage
+    {
+        /// <summary>
+        /// Gets or sets a value indicating whether this message originated from deserialization.
+        /// </summary>
+        bool WasDeserialized { get; set; }
+
+        /// <summary>
+        /// Gets or sets the document this message was deserialized from, if any.
+        /// </summary>
+        JsonDocument? InboundDocument { get; set; }
     }
 
     /// <inheritdoc/>
@@ -176,9 +204,12 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             message.Version = "1.0";
         }
 
-        if (message is IMessageWithTopLevelPropertyBag messageWithTopLevelPropertyBag)
+        if (message is IInboundMessage inboundMessage)
         {
-            messageWithTopLevelPropertyBag.TopLevelPropertyBag = new TopLevelPropertyBag(document, this.massagedUserDataSerializerOptions);
+            // Retain the document so a top-level property bag can be created on demand.
+            // Most messages never carry top-level properties, so we avoid allocating the bag up front.
+            inboundMessage.WasDeserialized = true;
+            inboundMessage.InboundDocument = document;
         }
 
         RequestId ReadRequestId()
@@ -206,9 +237,21 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
         using (this.TrackSerialization(message))
         {
+            // Reuse a cached writer when one is available, since allocating one per message is measurable.
+            // Interlocked ensures that reentrant serialization gets its own writer rather than corrupting ours.
+            Utf8JsonWriter? writer = Interlocked.Exchange(ref this.cachedWriter, null);
+            if (writer is null)
+            {
+                writer = new(bufferWriter, WriterOptions);
+            }
+            else
+            {
+                writer.Reset(bufferWriter);
+            }
+
+            bool cacheWriter = false;
             try
             {
-                using Utf8JsonWriter writer = new(bufferWriter, WriterOptions);
                 writer.WriteStartObject();
                 WriteVersion();
                 switch (message)
@@ -240,12 +283,27 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                         throw new ArgumentException("Unknown message type: " + message.GetType().Name, nameof(message));
                 }
 
-                if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
+                if (message is IInboundMessage { WasDeserialized: true })
+                {
+                    // We're re-transmitting an incoming message (remote target feature),
+                    // which would require copying the original top-level properties.
+                    // See the notes in TopLevelPropertyBag.WriteProperties.
+                    throw new NotImplementedException();
+                }
+                else if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: TopLevelPropertyBag propertyBag })
                 {
                     propertyBag.WriteProperties(writer);
                 }
 
                 writer.WriteEndObject();
+                writer.Flush();
+
+                // Detach the caller-owned output buffer before retaining the writer.
+                writer.Reset(WriterCacheBuffer);
+
+                // Only return the writer to the cache after a successful write,
+                // since a faulted writer may carry partial state into the next message.
+                cacheWriter = true;
 
                 void WriteVersion()
                 {
@@ -344,6 +402,20 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             {
                 throw new JsonException(Resources.SerializationFailure, ex);
             }
+            finally
+            {
+                if (cacheWriter)
+                {
+                    if (Interlocked.CompareExchange(ref this.cachedWriter, writer, null) is not null)
+                    {
+                        writer.Dispose();
+                    }
+                }
+                else
+                {
+                    writer.Dispose();
+                }
+            }
         }
     }
 
@@ -369,6 +441,22 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 
     /// <inheritdoc/>
     private protected override MessageFormatterRpcMarshaledContextTracker CreateMessageFormatterRpcMarshaledContextTracker(JsonRpc rpc) => new MessageFormatterRpcMarshaledContextTracker.Dynamic(rpc, ProxyFactory, this);
+
+    private static bool TryGetInboundTopLevelProperty<T>(IInboundMessage message, SystemTextJsonFormatter formatter, string name, [MaybeNull] out T value, out bool found)
+    {
+        if (message is IMessageWithTopLevelPropertyBag { TopLevelPropertyBag: null } && message.InboundDocument is JsonDocument inbound)
+        {
+            // Read straight from the parsed document instead of allocating a property bag to wrap it.
+            TopLevelPropertyBagBase.ValidatePropertyName(name);
+            found = inbound.RootElement.TryGetProperty(name, out JsonElement serializedValue);
+            value = found ? serializedValue.Deserialize<T>(formatter.massagedUserDataSerializerOptions) : default;
+            return true;
+        }
+
+        value = default;
+        found = false;
+        return false;
+    }
 
     private JsonSerializerOptions MassageUserDataSerializerOptions(JsonSerializerOptions options)
     {
@@ -494,6 +582,46 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     }
 
+    // Utf8JsonWriter.Reset needs a buffer owner when cached, but this buffer is never written to:
+    // the writer is reset to the next caller's output before serialization resumes.
+    private sealed class DiscardBufferWriter : IBufferWriter<byte>
+    {
+        private byte[] buffer = new byte[256];
+
+        public void Advance(int count)
+        {
+            if ((uint)count > (uint)this.buffer.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+        }
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            this.EnsureCapacity(sizeHint);
+            return this.buffer;
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            this.EnsureCapacity(sizeHint);
+            return this.buffer;
+        }
+
+        private void EnsureCapacity(int sizeHint)
+        {
+            if (sizeHint < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sizeHint));
+            }
+
+            if (sizeHint > this.buffer.Length)
+            {
+                Array.Resize(ref this.buffer, sizeHint);
+            }
+        }
+    }
+
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     private class TopLevelPropertyBag : TopLevelPropertyBagBase
     {
@@ -558,7 +686,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-    private class JsonRpcRequest : JsonRpcRequestBase
+    private class JsonRpcRequest : JsonRpcRequestBase, IInboundMessage
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -584,6 +712,12 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                     : null;
             }
         }
+
+        /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
+
+        /// <inheritdoc/>
+        public JsonDocument? InboundDocument { get; set; }
 
         internal JsonElement? JsonArguments
         {
@@ -684,12 +818,26 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             return valueElement.HasValue;
         }
 
-        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            if (TryGetInboundTopLevelProperty(this, this.formatter, name, out value, out bool found))
+            {
+                return found;
+            }
+
+            return base.TryGetTopLevelProperty(name, out value);
+        }
+
+        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag()
+            => this.InboundDocument is JsonDocument inbound
+                ? new TopLevelPropertyBag(inbound, this.formatter.massagedUserDataSerializerOptions)
+                : new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
 
         protected override void ReleaseBuffers()
         {
             base.ReleaseBuffers();
             this.jsonArguments = null;
+            this.InboundDocument = null;
             this.formatter.deserializingDocument?.Dispose();
             this.formatter.deserializingDocument = null;
         }
@@ -720,7 +868,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-    private class JsonRpcResult : JsonRpcResultBase
+    private class JsonRpcResult : JsonRpcResultBase, IInboundMessage
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -730,6 +878,12 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         {
             this.formatter = formatter;
         }
+
+        /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
+
+        /// <inheritdoc/>
+        public JsonDocument? InboundDocument { get; set; }
 
         internal JsonElement? JsonResult { get; set; }
 
@@ -743,6 +897,16 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             return this.JsonResult is null
                 ? (T)this.Result!
                 : this.JsonResult.Value.Deserialize<T>(this.formatter.massagedUserDataSerializerOptions)!;
+        }
+
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            if (TryGetInboundTopLevelProperty(this, this.formatter, name, out value, out bool found))
+            {
+                return found;
+            }
+
+            return base.TryGetTopLevelProperty(name, out value);
         }
 
         protected internal override void SetExpectedResultType(Type resultType)
@@ -765,19 +929,23 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             }
         }
 
-        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
+        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag()
+            => this.InboundDocument is JsonDocument inbound
+                ? new TopLevelPropertyBag(inbound, this.formatter.massagedUserDataSerializerOptions)
+                : new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
 
         protected override void ReleaseBuffers()
         {
             base.ReleaseBuffers();
             this.JsonResult = null;
+            this.InboundDocument = null;
             this.formatter.deserializingDocument?.Dispose();
             this.formatter.deserializingDocument = null;
         }
     }
 
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
-    private class JsonRpcError : JsonRpcErrorBase
+    private class JsonRpcError : JsonRpcErrorBase, IInboundMessage
     {
         private readonly SystemTextJsonFormatter formatter;
 
@@ -786,13 +954,32 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
             this.formatter = formatter;
         }
 
+        /// <inheritdoc/>
+        public bool WasDeserialized { get; set; }
+
+        /// <inheritdoc/>
+        public JsonDocument? InboundDocument { get; set; }
+
         internal new ErrorDetail? Error
         {
             get => (ErrorDetail?)base.Error;
             set => base.Error = value;
         }
 
-        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag() => new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
+        public override bool TryGetTopLevelProperty<T>(string name, [MaybeNull] out T value)
+        {
+            if (TryGetInboundTopLevelProperty(this, this.formatter, name, out value, out bool found))
+            {
+                return found;
+            }
+
+            return base.TryGetTopLevelProperty(name, out value);
+        }
+
+        protected override TopLevelPropertyBagBase? CreateTopLevelPropertyBag()
+            => this.InboundDocument is JsonDocument inbound
+                ? new TopLevelPropertyBag(inbound, this.formatter.massagedUserDataSerializerOptions)
+                : new TopLevelPropertyBag(this.formatter.massagedUserDataSerializerOptions);
 
         protected override void ReleaseBuffers()
         {
@@ -802,6 +989,7 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
                 detail.JsonData = null;
             }
 
+            this.InboundDocument = null;
             this.formatter.deserializingDocument?.Dispose();
             this.formatter.deserializingDocument = null;
         }

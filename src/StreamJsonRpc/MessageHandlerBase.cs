@@ -121,6 +121,9 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     /// Implementations may assume this method is never called before any async result
     /// from a prior call to this method has completed.
     /// </remarks>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     public async ValueTask<JsonRpcMessage?> ReadAsync(CancellationToken cancellationToken)
     {
         Verify.Operation(this.CanRead, "No receiving stream.");
