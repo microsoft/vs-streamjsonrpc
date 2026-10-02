@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Nerdbank.Streams;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
@@ -82,6 +83,12 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
     /// <summary>
     /// Gets or sets the options to use when serializing and deserializing JSON containing user data.
     /// </summary>
+    /// <remarks>
+    /// The formatter prepends metadata for its built-in types when constructed or when this property is assigned.
+    /// An explicitly configured resolver must supply metadata for application types; no reflection fallback is added.
+    /// To override built-in metadata, prepend a custom resolver to the returned options before using them.
+    /// Replacing <see cref="System.Text.Json.JsonSerializerOptions.TypeInfoResolver"/> on the returned options removes the built-in registration.
+    /// </remarks>
     public JsonSerializerOptions JsonSerializerOptions
     {
         get => this.massagedUserDataSerializerOptions;
@@ -387,6 +394,15 @@ public partial class SystemTextJsonFormatter : FormatterBase, IJsonRpcMessageFor
         // Add support for serializing exceptions.
         options.Converters.Add(new ExceptionConverter(this));
 
+        // Preserve STJ's implicit reflection behavior only when no resolver was configured.
+        if (options.TypeInfoResolver is null && JsonSerializer.IsReflectionEnabledByDefault)
+        {
+            options.TypeInfoResolver = new DefaultJsonTypeInfoResolver();
+        }
+
+        // Prefer built-in metadata, without duplicating it when previously used options were copied.
+        options.TypeInfoResolverChain.Remove(SourceGenerationContext.Default);
+        options.TypeInfoResolverChain.Insert(0, SourceGenerationContext.Default);
         return options;
     }
 
