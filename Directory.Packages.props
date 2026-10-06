@@ -5,7 +5,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <MicrosoftTestingPlatformVersion>2.4.1</MicrosoftTestingPlatformVersion>
-    <MessagePackVersion>2.5.302</MessagePackVersion>
+    <MessagePackVersion>2.5.305</MessagePackVersion>
     <MicroBuildVersion>2.0.257</MicroBuildVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
     <VisualStudioThreadingVersion>18.7.23</VisualStudioThreadingVersion>
