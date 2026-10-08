@@ -4,7 +4,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <MicrosoftTestingPlatformVersion>2.4.1</MicrosoftTestingPlatformVersion>
+    <MicrosoftTestingPlatformVersion>2.5.1</MicrosoftTestingPlatformVersion>
     <MessagePackVersion>2.5.305</MessagePackVersion>
     <MicroBuildVersion>2.0.257</MicroBuildVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
@@ -40,12 +40,12 @@
     <PackageVersion Include="System.Text.Json" Version="10.0.10" />
     <PackageVersion Include="System.Threading.Tasks.Dataflow" Version="8.0.1" />
     <PackageVersion Include="System.ValueTuple" Version="4.6.2" />
-    <PackageVersion Include="xunit.combinatorial" Version="2.1.41" />
+    <PackageVersion Include="xunit.combinatorial" Version="2.1.43" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.3" />
-    <PackageVersion Include="xunit.stafact" Version="4.0.23" />
+    <PackageVersion Include="xunit.stafact" Version="4.0.24" />
   </ItemGroup>
   <ItemGroup Label="Library.Template">
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CrashDump" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="$(MicrosoftTestingPlatformVersion)" />
     <PackageVersion Include="Microsoft.Testing.Extensions.Telemetry" Version="$(MicrosoftTestingPlatformVersion)" />
