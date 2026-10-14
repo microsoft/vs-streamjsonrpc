@@ -5,7 +5,12 @@
 		"github>microsoft/vs-renovate-presets:vs_main_dependencies",
 		"github>microsoft/vs-renovate-presets:dotnet_packages_LTS"
 	],
+	"labels": ["dependencies"],
 	"packageRules": [
+		{
+			"matchPackageNames": ["*"],
+			"allowedVersions": "!/-g[a-f0-9]+$/"
+		},
 		{
 			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
 			"allowedVersions": "<2.4"
@@ -13,6 +18,23 @@
 		{
 			"matchFileNames": ["Directory.Packages.Analyzers.props"],
 			"enabled": false
+		},
+		{
+			"matchPackageNames": ["nbgv", "nerdbank.gitversioning"],
+			"groupName": "nbgv and nerdbank.gitversioning updates"
+		},
+		{
+			"matchPackageNames": ["xunit*"],
+			"groupName": "xunit"
+		},
+		{
+			"matchPackageNames": ["Microsoft.Testing.Extensions.*"],
+			"groupName": "Microsoft Testing Platform"
+		},
+		{
+			"matchDatasources": ["dotnet-version", "docker"],
+			"matchDepNames": ["dotnet-sdk", "mcr.microsoft.com/dotnet/sdk"],
+			"groupName": "Dockerfile and global.json updates"
 		}
 	]
 }
