@@ -10,11 +10,19 @@ parameters:
 
 steps:
 
-- script: dotnet build tools/dirs.proj -t:build,pack,publish --no-restore -c $(BuildConfiguration) -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904,LOCTASK002 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
-  displayName: 🛠 dotnet build
-  ${{ if parameters.BuildRequiresAccessToken }}:
-    env:
-      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+- ${{ if parameters.RunTests }}:
+  - script: dotnet build tools/dirs.proj -t:build,pack,publish --no-restore -c $(BuildConfiguration) -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904,LOCTASK002 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+    displayName: 🛠 dotnet build
+    ${{ if parameters.BuildRequiresAccessToken }}:
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+- ${{ if not(parameters.RunTests) }}:
+  - script: dotnet build tools/dirs.proj -t:build,pack --no-restore -c $(BuildConfiguration) -warnAsError -warnNotAsError:NU1901,NU1902,NU1903,NU1904,LOCTASK002 /bl:"$(Build.ArtifactStagingDirectory)/build_logs/build.binlog"
+    displayName: 🛠 dotnet build
+    ${{ if parameters.BuildRequiresAccessToken }}:
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
 - powershell: tools/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults
   displayName: 🧪 dotnet test
@@ -24,13 +32,13 @@ steps:
   displayName: 🧪 dotnet test -f net472 (+EventSource throw)
   env:
     StreamJsonRpc_TestWithEventSource: 1 # allow exceptions from EventSource to propagate
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+  condition: and(succeeded(), ${{ parameters.RunTests }}, eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: tools/dotnet-test-cloud.ps1 -Configuration $(BuildConfiguration) -Agent $(Agent.JobName) -PublishResults -netfxOnly -logIsolationName EventSource-production
   displayName: 🧪 dotnet test -f net472 (+EventSource production)
   env:
     StreamJsonRpc_TestWithEventSource: 2 # swallow exceptions from EventSource, as is done in production
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+  condition: and(succeeded(), ${{ parameters.RunTests }}, eq(variables['Agent.OS'], 'Windows_NT'))
 
 - powershell: tools/variables/_define.ps1
   failOnStderr: true

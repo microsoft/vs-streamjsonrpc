@@ -1,17 +1,22 @@
 <Project>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <SelfContained>true</SelfContained>
     <PublishAot>true</PublishAot>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RuntimeIdentifiers>$(AvailableRuntimeIdentifiers)</RuntimeIdentifiers>
-    <RuntimeIdentifier>$(DefaultRuntimeIdentifier)</RuntimeIdentifier>
+    <!-- The existing compatibility executable imports these props before its project body. -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(MSBuildProjectName)' == 'NativeAOTCompatibility.Test'">$(DefaultRuntimeIdentifier)</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- Compatibility projects can override these defaults in their project files. -->
+    <InvariantGlobalization Condition="'$(InvariantGlobalization)' == ''">true</InvariantGlobalization>
+    <SatelliteResourceLanguages Condition="'$(SatelliteResourceLanguages)' == ''">en</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ProjectReference>
-      <!-- Suppress spreading the RID being built here to RID-neutral projects. -->
-      <GlobalPropertiesToRemove>RuntimeIdentifier</GlobalPropertiesToRemove>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);RuntimeIdentifier;NativeAOT</GlobalPropertiesToRemove>
     </ProjectReference>
   </ItemDefinitionGroup>
 </Project>
