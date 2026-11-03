@@ -14,7 +14,7 @@ user-invocable: false
 ## Running Tests
 
 There *may* be unstable tests that are attributed as such.
-Running the [dotnet-test-cloud.ps1](../../../tools/dotnet-test-cloud.ps1) script will execute all previously built tests except the unstable ones.
+Running the [dotnet-test-cloud.ps1](../../../tools/dotnet-test-cloud.ps1) script with `-Configuration Release` will execute all previously built Release tests except the unstable ones.
 The commands below do not automatically exclude unstable tests; add `-- --filter-not-trait "TestCategory=FailsInCloudTest"` to filter them out.
 
 **Run all tests**:
