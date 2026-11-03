@@ -41,6 +41,7 @@
 
     <!-- Workaround https://github.com/dotnet/docfx/issues/10808 -->
     <DefineConstants Condition="'$(DocFx)'!='true'">$(DefineConstants);NOTDOCFX</DefineConstants>
+    <NoWarn Condition="'$(DocFxNoWarn)' != ''">$(NoWarn);$(DocFxNoWarn)</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
