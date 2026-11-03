@@ -3,6 +3,7 @@ do-not-warn-for-redirect-to = [
     "https://dotnet.microsoft.com/*",
     "https://dev.azure.com/*",
     "https://app.codecov.io/*",
+    "https://microsoft.github.io/vs-threading/*",
 ]
 ignore-path = ["docfx"]
 ignore-links = [
