@@ -12,6 +12,11 @@
 			"allowedVersions": "<2.4"
 		},
 		{
+			"description": "Keep the earliest stable Newtonsoft.Json 13.x API for .NET Framework GAC compatibility. See https://github.com/microsoft/vs-streamjsonrpc/issues/1581.",
+			"matchPackageNames": ["Newtonsoft.Json"],
+			"enabled": false
+		},
+		{
 			"matchFileNames": ["Directory.Packages.Analyzers.props"],
 			"enabled": false
 		},
