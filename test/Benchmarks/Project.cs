@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.ComponentModel;
 using MessagePack;
 
 namespace Benchmarks;
@@ -14,11 +15,13 @@ public class Project
     /// <summary>
     /// Gets or sets the project name.
     /// </summary>
+    [DefaultValue("")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the target framework moniker.
     /// </summary>
+    [DefaultValue("")]
     public string TargetFramework { get; set; } = string.Empty;
 
     /// <summary>

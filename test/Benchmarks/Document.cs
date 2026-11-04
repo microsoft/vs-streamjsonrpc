@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.ComponentModel;
 using MessagePack;
 
 namespace Benchmarks;
@@ -14,6 +15,7 @@ public class Document
     /// <summary>
     /// Gets or sets the repo-relative path.
     /// </summary>
+    [DefaultValue("")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
@@ -29,6 +31,7 @@ public class Document
     /// <summary>
     /// Gets or sets the content checksum.
     /// </summary>
+    [DefaultValue("")]
     public string Checksum { get; set; } = string.Empty;
 
     /// <summary>

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.ComponentModel;
 using MessagePack;
 
 namespace Benchmarks;
@@ -14,11 +15,13 @@ public class Diagnostic
     /// <summary>
     /// Gets or sets the diagnostic identifier.
     /// </summary>
+    [DefaultValue("")]
     public string Id { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the severity.
     /// </summary>
+    [DefaultValue("")]
     public string Severity { get; set; } = string.Empty;
 
     /// <summary>
@@ -34,5 +37,6 @@ public class Diagnostic
     /// <summary>
     /// Gets or sets the human-readable message.
     /// </summary>
+    [DefaultValue("")]
     public string Message { get; set; } = string.Empty;
 }
