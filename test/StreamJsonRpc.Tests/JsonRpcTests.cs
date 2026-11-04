@@ -883,7 +883,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public void SynchronizationContext_DefaultIsNonConcurrent()
     {
-        Assert.IsType<NonConcurrentSynchronizationContext>(this.serverRpc.SynchronizationContext);
+        NonConcurrentSynchronizationContext synchronizationContext =
+            Assert.IsType<NonConcurrentSynchronizationContext>(this.serverRpc.SynchronizationContext);
+        Assert.NotNull(synchronizationContext);
     }
 
     [Fact]
