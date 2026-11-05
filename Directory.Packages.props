@@ -8,7 +8,7 @@
     <MessagePackVersion>2.5.307</MessagePackVersion>
     <MicroBuildVersion>2.0.272</MicroBuildVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
-    <VisualStudioThreadingVersion>18.7.23</VisualStudioThreadingVersion>
+    <VisualStudioThreadingVersion>18.12.1</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
@@ -17,7 +17,7 @@
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.3.13" />
     <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.13" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
