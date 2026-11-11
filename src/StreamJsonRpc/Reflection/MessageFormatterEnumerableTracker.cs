@@ -370,7 +370,7 @@ public class MessageFormatterEnumerableTracker
 
         public async ValueTask DisposeAsync()
         {
-#if NET8_0_OR_GREATER
+#if NET10_0_OR_GREATER
             await this.cancellationTokenSource.CancelAsync().ConfigureAwait(false);
 #else
             this.cancellationTokenSource.Cancel();

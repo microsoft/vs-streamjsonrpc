@@ -41,7 +41,7 @@ public class RemoteMethodNotFoundException : RemoteRpcException
     /// </summary>
     /// <param name="info">Serialization info.</param>
     /// <param name="context">Streaming context.</param>
-#if NET8_0_OR_GREATER
+#if NET10_0_OR_GREATER
     [Obsolete]
 #endif
     protected RemoteMethodNotFoundException(SerializationInfo info, StreamingContext context)
@@ -70,7 +70,7 @@ public class RemoteMethodNotFoundException : RemoteRpcException
     public new object? DeserializedErrorData => base.DeserializedErrorData;
 
     /// <inheritdoc/>
-#if NET8_0_OR_GREATER
+#if NET10_0_OR_GREATER
     [Obsolete]
 #endif
     public override void GetObjectData(SerializationInfo info, StreamingContext context)
