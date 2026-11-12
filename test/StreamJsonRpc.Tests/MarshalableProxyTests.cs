@@ -1557,7 +1557,7 @@ public abstract partial class MarshalableProxyTests : TestBase
             this.Enumerable = enumeration;
         }
 
-#if NET10_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         protected ExceptionWithAsyncEnumerable(SerializationInfo info, StreamingContext context)
@@ -1568,7 +1568,7 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         internal IAsyncEnumerable<int>? Enumerable { get; set; }
 
-#if NET10_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

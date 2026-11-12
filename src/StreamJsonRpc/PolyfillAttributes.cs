@@ -99,7 +99,7 @@ namespace System.Diagnostics.CodeAnalysis
     }
 #endif
 
-#if !NET10_0_OR_GREATER
+#if !NET
     /// <summary>
     /// Indicates that the specified method requires the ability to generate new code at runtime,
     /// for example through <see cref="Reflection"/>.

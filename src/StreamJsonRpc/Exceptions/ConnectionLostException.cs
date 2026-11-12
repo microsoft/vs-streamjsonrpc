@@ -42,7 +42,7 @@ public class ConnectionLostException : RemoteRpcException
     /// </summary>
     /// <param name="info">Serialization info.</param>
     /// <param name="context">Streaming context.</param>
-#if NET10_0_OR_GREATER
+#if NET
     [Obsolete]
 #endif
     protected ConnectionLostException(

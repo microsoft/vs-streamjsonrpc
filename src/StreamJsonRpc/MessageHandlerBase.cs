@@ -242,7 +242,7 @@ public abstract class MessageHandlerBase : IJsonRpcMessageHandler, IDisposableOb
     {
         if (!this.disposalTokenSource.IsCancellationRequested)
         {
-#if NET10_0_OR_GREATER
+#if NET
             await this.disposalTokenSource.CancelAsync().ConfigureAwait(false);
 #else
             this.disposalTokenSource.Cancel();
