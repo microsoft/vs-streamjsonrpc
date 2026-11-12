@@ -1,5 +1,5 @@
 <Project>
-  <!-- These versions are chosen to support the .NET 8 SDK. -->
+  <!-- These versions are chosen to support the .NET 10 SDK. -->
   <PropertyGroup>
     <CodeAnalysisVersionForAnalyzers>4.11.0</CodeAnalysisVersionForAnalyzers>
   </PropertyGroup>
