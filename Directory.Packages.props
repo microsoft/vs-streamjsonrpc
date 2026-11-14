@@ -7,16 +7,16 @@
     <MicrosoftTestingPlatformVersion>2.5.2</MicrosoftTestingPlatformVersion>
     <MessagePackVersion>2.5.307</MessagePackVersion>
     <MicroBuildVersion>2.0.272</MicroBuildVersion>
-    <RoslynVersion>5.9.0</RoslynVersion>
+    <RoslynVersion>5.12.0</RoslynVersion>
     <VisualStudioThreadingVersion>18.12.1</VisualStudioThreadingVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
-    <PackageVersion Include="FSharp.Core" Version="11.0.100" />
+    <PackageVersion Include="FSharp.Core" Version="11.0.101" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackVersion)" />
     <PackageVersion Include="MessagePackAnalyzer" Version="$(MessagePackVersion)" />
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.3.13" />
-    <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="2.3.14" />
+    <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.14" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.14" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynVersion)" />
