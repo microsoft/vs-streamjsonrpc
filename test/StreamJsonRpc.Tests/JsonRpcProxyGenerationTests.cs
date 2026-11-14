@@ -6,6 +6,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+#if NETFRAMEWORK
+using System.Reflection.Emit;
+#endif
 #if NET
 using System.Runtime.Loader;
 #endif
@@ -1237,6 +1240,91 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 #if NO_INTERCEPTORS
     public class Dynamic(ITestOutputHelper logger) : JsonRpcProxyGenerationTests(logger, JsonRpcProxyOptions.ProxyImplementation.AlwaysDynamic)
     {
+#if NET
+        private interface ICollectibleTypeContract<T>
+        {
+            Task<string> EchoAsync(T value);
+        }
+
+        [Fact]
+        public async Task GeneratedProxyAssemblyIsNonCollectibleAndProxyTypeIsCached()
+        {
+            (Stream clientStream, Stream serverStream) = FullDuplexStream.CreateStreams();
+            using JsonRpc serverRpc = JsonRpc.Attach(serverStream, new Server());
+            using JsonRpc clientRpc = new(clientStream);
+            IServer proxy1 = clientRpc.Attach<IServer>(this.DefaultProxyOptions);
+            using JsonRpc otherRpc = new(Stream.Null);
+            IServer proxy2 = otherRpc.Attach<IServer>(this.DefaultProxyOptions);
+            clientRpc.StartListening();
+
+            Assert.False(proxy1.GetType().Assembly.IsCollectible);
+            Assert.Same(proxy1.GetType(), proxy2.GetType());
+            Assert.Equal("Hi!", await proxy1.SayHiAsync().WithCancellation(this.TimeoutToken));
+        }
+
+        [Fact]
+        public async Task GeneratedProxySupportsCollectibleSignatureType()
+        {
+            AssemblyLoadContext alc = UnreachableAssemblyTools.CreateContextForReachingTheUnreachable(isCollectible: true);
+            Type collectibleType = alc.Assemblies.Single(assembly => assembly.GetName().Name == "UnreachableAssembly").GetType("UnreachableAssembly.SomeUnreachableClass")!;
+            Type contractType = typeof(ICollectibleTypeContract<>).MakeGenericType(collectibleType);
+            MethodInfo handlerMethod = typeof(Dynamic).GetMethod(nameof(EchoAsync), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(collectibleType);
+            Type handlerType = typeof(Func<,>).MakeGenericType(collectibleType, typeof(Task<string>));
+            Delegate handler = handlerMethod.CreateDelegate(handlerType);
+
+            (Stream clientStream, Stream serverStream) = FullDuplexStream.CreateStreams();
+            using JsonRpc serverRpc = new(serverStream);
+            serverRpc.AddLocalRpcMethod(nameof(ICollectibleTypeContract<object>.EchoAsync), handler);
+            using JsonRpc clientRpc = new(clientStream);
+            object proxy = clientRpc.Attach(contractType, this.DefaultProxyOptions);
+            serverRpc.StartListening();
+            clientRpc.StartListening();
+
+            object argument = Activator.CreateInstance(collectibleType)!;
+            Task<string> invocation = (Task<string>)contractType.GetMethod(nameof(ICollectibleTypeContract<object>.EchoAsync))!.Invoke(proxy, [argument])!;
+
+            Assert.False(contractType.Assembly.IsCollectible);
+            Assert.True(collectibleType.Assembly.IsCollectible);
+            Assert.True(proxy.GetType().Assembly.IsCollectible);
+            Assert.Equal("Hi!", await invocation.WithCancellation(this.TimeoutToken));
+        }
+
+#endif
+
+#if NETFRAMEWORK
+        [Fact]
+        public async Task GeneratedProxySupportsDynamicContractAssembly()
+        {
+            var contractAssemblyName = new AssemblyName($"CollectibleContract_{Guid.NewGuid()}");
+            AssemblyBuilder contractAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(contractAssemblyName, AssemblyBuilderAccess.RunAndCollect);
+            ModuleBuilder contractModule = contractAssembly.DefineDynamicModule(contractAssemblyName.Name);
+            TypeBuilder contractTypeBuilder = contractModule.DefineType(
+                "ICollectibleContract",
+                TypeAttributes.Interface | TypeAttributes.Abstract | TypeAttributes.Public);
+            MethodBuilder echoMethod = contractTypeBuilder.DefineMethod(
+                "EchoAsync",
+                MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual,
+                typeof(Task<string>),
+                [typeof(string)]);
+            echoMethod.DefineParameter(1, ParameterAttributes.None, "value");
+            Type contractType = contractTypeBuilder.CreateType();
+
+            (Stream clientStream, Stream serverStream) = FullDuplexStream.CreateStreams();
+            using JsonRpc serverRpc = new(serverStream);
+            serverRpc.AddLocalRpcMethod("EchoAsync", new Func<string, Task<string>>(value => Task.FromResult(value + "!")));
+            using JsonRpc clientRpc = new(clientStream);
+            object proxy = clientRpc.Attach(contractType, this.DefaultProxyOptions);
+            serverRpc.StartListening();
+            clientRpc.StartListening();
+
+            Task<string> invocation = (Task<string>)contractType.GetMethod("EchoAsync").Invoke(proxy, ["Hi"])!;
+
+            Assert.True(contractAssembly.IsDynamic);
+            Assert.True(contractType.IsInstanceOfType(proxy));
+            Assert.Equal("Hi!", await invocation.WithCancellation(this.TimeoutToken));
+        }
+#endif
+
         [Fact]
         public void IAsyncDisposableMayBeContractInterface()
         {
@@ -1245,6 +1333,10 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
 
             Assert.IsAssignableFrom<System.IAsyncDisposable>(proxy);
         }
+
+#if NET
+        private static Task<string> EchoAsync<T>(T value) => Task.FromResult(value is null ? "null" : "Hi!");
+#endif
     }
 #endif
 
