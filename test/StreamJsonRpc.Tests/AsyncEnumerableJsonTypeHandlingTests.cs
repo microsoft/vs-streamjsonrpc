@@ -3,6 +3,7 @@
 
 using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class AsyncEnumerableJsonTypeHandlingTests : AsyncEnumerableJsonTests
 {
     public AsyncEnumerableJsonTypeHandlingTests(ITestOutputHelper logger)

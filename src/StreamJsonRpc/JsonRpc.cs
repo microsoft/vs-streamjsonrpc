@@ -195,6 +195,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public JsonRpc(Stream stream)
         : this(new HeaderDelimitedMessageHandler(Requires.NotNull(stream, nameof(stream)), stream, new JsonMessageFormatter()))
@@ -212,6 +213,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <remarks>
     /// It is important to call <see cref="StartListening"/> to begin receiving messages.
     /// </remarks>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public JsonRpc(Stream? sendingStream, Stream? receivingStream, object? target = null)
         : this(new HeaderDelimitedMessageHandler(sendingStream, receivingStream, new JsonMessageFormatter()))
@@ -849,6 +851,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
 #pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static JsonRpc Attach(Stream stream, object? target = null)
 #pragma warning restore RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
@@ -860,6 +863,29 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
+    /// a given <see cref="IJsonRpcMessageHandler"/> to transmit and receive messages, and immediately starts listening.
+    /// </summary>
+    /// <param name="handler">The message handler to use for transmitting and receiving messages.</param>
+    /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
+    /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+    public static JsonRpc Attach(IJsonRpcMessageHandler handler, object? target = null)
+    {
+        Requires.NotNull(handler);
+        JsonRpc rpc = new(handler, target);
+        try
+        {
+            rpc.StartListening();
+            return rpc;
+        }
+        catch
+        {
+            rpc.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
     /// <see cref="HeaderDelimitedMessageHandler"/> around messages serialized using the
     /// <see cref="JsonMessageFormatter"/>, and immediately starts listening.
     /// </summary>
@@ -867,6 +893,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="receivingStream">The stream used to receive messages. May be null.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static JsonRpc Attach(Stream? sendingStream, Stream? receivingStream, object? target = null)
     {
@@ -906,6 +933,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Calls to this method are intercepted by a source generator and replaced with a NativeAOT-compatible method call
     /// <see href="https://microsoft.github.io/vs-streamjsonrpc/docs/nativeAOT.html">when the interceptor is enabled</see>.
     /// </remarks>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream stream)
         where T : class
@@ -925,6 +953,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// and should be disposed of to close the connection.
     /// </returns>
     /// <inheritdoc cref="Attach{T}(Stream)" path="/remarks"/>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public static T Attach<T>(Stream? sendingStream, Stream? receivingStream)
         where T : class

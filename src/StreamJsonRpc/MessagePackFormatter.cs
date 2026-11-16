@@ -28,6 +28,7 @@ namespace StreamJsonRpc;
 /// .NET MessagePack implementations and this one appears to be the best by far.
 /// </remarks>
 [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+[Obsolete($"MessagePack-CSharp support is deprecated and may be removed in a future version. Consider using Nerdbank.MessagePack instead via {nameof(NerdbankMessagePackFormatter)}.")]
 public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJsonRpcFormatterTracingCallbacks, IJsonRpcMessageFactory
 {
     private static readonly ProxyFactory ProxyFactory = ProxyFactory.Default;

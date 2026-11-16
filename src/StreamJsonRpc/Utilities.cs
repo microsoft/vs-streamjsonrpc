@@ -9,6 +9,8 @@ namespace StreamJsonRpc;
 
 internal static class Utilities
 {
+    internal const string NewtonsoftJsonDefaultObsolete = $"Newtonsoft.Json support is deprecated and may be removed in a future version. Use another overload that accepts an explicit formatter and consider using {nameof(SystemTextJsonFormatter)} or {nameof(NerdbankMessagePackFormatter)}.";
+
     /// <summary>
     /// Reads an <see cref="int"/> value from a buffer using big endian.
     /// </summary>

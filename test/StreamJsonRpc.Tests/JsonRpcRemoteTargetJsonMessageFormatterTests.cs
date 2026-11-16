@@ -1,8 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using StreamJsonRpc;
-
+[Obsolete(ObsoleteFormatter)]
 public class JsonRpcRemoteTargetJsonMessageFormatterTests : JsonRpcRemoteTargetTests
 {
     public JsonRpcRemoteTargetJsonMessageFormatterTests(ITestOutputHelper logger)

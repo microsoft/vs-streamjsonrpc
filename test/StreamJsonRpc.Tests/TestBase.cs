@@ -8,6 +8,8 @@ using Microsoft.VisualStudio.Threading;
 
 public abstract class TestBase : IDisposable
 {
+    public const string ObsoleteFormatter = "These tests focus on an obsolete formatter.";
+
     protected static readonly TimeSpan ExpectedTimeout = TimeSpan.FromMilliseconds(200);
 
     protected static readonly TimeSpan UnexpectedTimeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(20);
@@ -55,6 +57,19 @@ public abstract class TestBase : IDisposable
         this.Dispose(true);
         GC.SuppressFinalize(this);
     }
+
+    /// <summary>
+    /// Creates a new formatter where the test doesn't care which implementation is used.
+    /// </summary>
+    /// <returns>The newly instantiated formatter.</returns>
+    protected static IJsonRpcMessageFormatter CreateAnyFormatter() => new SystemTextJsonFormatter();
+
+    /// <summary>
+    /// Creates a new message handler where the test doesn't care which implementation is used.
+    /// </summary>
+    /// <param name="stream">The stream to use for the message handler.</param>
+    /// <returns>The newly instantiated message handler.</returns>
+    protected static IJsonRpcMessageHandler CreateAnyHandler(Stream stream) => new LengthHeaderMessageHandler(stream, stream, CreateAnyFormatter());
 
     protected static void AssertCollectedObject(WeakReference weakReference)
     {

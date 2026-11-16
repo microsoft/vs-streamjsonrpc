@@ -108,9 +108,9 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     public async Task BaseClassRegistrationUsesRuntimeOverrideInterfaceDefault()
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
-        using var server = new JsonRpc(serverStream);
+        using var server = new JsonRpc(CreateAnyHandler(serverStream));
         server.AddLocalRpcTarget(typeof(VirtualBaseTarget), new VirtualDerivedTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
-        using var client = new JsonRpc(clientStream);
+        using var client = new JsonRpc(CreateAnyHandler(clientStream));
         server.StartListening();
         client.StartListening();
 
@@ -126,9 +126,9 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     public async Task BaseClassRegistrationUsesExposedContractDefault()
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
-        using var server = new JsonRpc(serverStream);
+        using var server = new JsonRpc(CreateAnyHandler(serverStream));
         server.AddLocalRpcTarget(typeof(BaseContractDefaultTarget), new DerivedContractDefaultTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
-        using var client = new JsonRpc(clientStream);
+        using var client = new JsonRpc(CreateAnyHandler(clientStream));
         server.StartListening();
         client.StartListening();
 
@@ -143,7 +143,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void OverloadsAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new OverloadedTarget(), options));
@@ -154,7 +154,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void CancellationTokenOverloadsAreAllowed()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         server.AddLocalRpcTarget(new NonCancelableTarget(), options);
@@ -164,7 +164,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void CancellationTokenOverloadsWithDifferentParameterNamesAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new FirstNamedTarget(), options);
 
@@ -177,7 +177,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void MultipleCancellationTokenOverloadsAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new MultipleCancelableTarget(), options));
@@ -189,7 +189,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void StrictCancellationTokenBatchAfterFlexibleTargetIsRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         server.AddLocalRpcTarget(new NonCancelableTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new StrictMultipleCancelableTarget()));
@@ -201,7 +201,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void FlexibleTargetAfterStrictCancellationTokenBatchIsRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         server.AddLocalRpcTarget(new StrictMultipleCancelableTarget());
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(
@@ -216,10 +216,10 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     public async Task MixedModeCancellationTokenPairPreservesRegistrationOrder()
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
-        using var server = new JsonRpc(serverStream);
+        using var server = new JsonRpc(CreateAnyHandler(serverStream));
         server.AddLocalRpcTarget(new CancelableTarget(), new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
         server.AddLocalRpcTarget(new NonCancelableTarget());
-        using var client = new JsonRpc(clientStream);
+        using var client = new JsonRpc(CreateAnyHandler(clientStream));
         server.StartListening();
         client.StartListening();
 
@@ -234,7 +234,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void SameTypedOverloadsWithDifferentParameterNamesAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new DifferentlyNamedOverloadedTarget(), options));
@@ -246,7 +246,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void DuplicateTransformedParameterNamesAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions
         {
             AllowFlexibleNamedArgumentMatching = true,
@@ -262,7 +262,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void DuplicateAttributedParameterNamesAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new DuplicateAttributedParameterTarget(), options));
@@ -274,7 +274,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void CaseInsensitiveDuplicateParameterNamesAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => server.AddLocalRpcTarget(new CaseInsensitiveDuplicateParameterTarget(), options));
@@ -286,7 +286,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void OverloadsAcrossSeparateRegistrationsAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new IntegerTarget(), options);
 
@@ -299,7 +299,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void SameTypedOverloadsWithDifferentParameterNamesAcrossSeparateRegistrationsAreRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new FirstNamedTarget(), options);
 
@@ -312,7 +312,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void LocalMethodAddedAfterFlexibleTargetIsRejected()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new IntegerTarget(), options);
 
@@ -324,7 +324,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void CancellationTokenLocalMethodAddedAfterFlexibleTargetIsAllowed()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new NonCancelableTarget(), options);
         var cancelableMethod = typeof(CancelableTarget).GetMethod(nameof(CancelableTarget.Select))!;
@@ -335,7 +335,7 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
     [Fact]
     public void NonCancellationTokenLocalMethodAddedAfterFlexibleCancelableTargetIsAllowed()
     {
-        using var server = new JsonRpc(new MemoryStream());
+        using var server = new JsonRpc(CreateAnyHandler(new MemoryStream()));
         var options = new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true };
         server.AddLocalRpcTarget(new CancelableTarget(), options);
         var nonCancelableMethod = typeof(NonCancelableTarget).GetMethod(nameof(NonCancelableTarget.Select))!;
@@ -347,9 +347,9 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         where TContract : class
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
-        var server = new JsonRpc(serverStream);
+        var server = new JsonRpc(CreateAnyHandler(serverStream));
         server.AddLocalRpcTarget<TContract>(target, new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
-        var client = new JsonRpc(clientStream);
+        var client = new JsonRpc(CreateAnyHandler(clientStream));
         server.StartListening();
         client.StartListening();
         return new RpcPair(server, client, serverStream, clientStream);
@@ -365,14 +365,14 @@ public class FlexibleNamedArgumentMatchingTests : TestBase
         where TTarget : class
     {
         (Stream serverStream, Stream clientStream) = Nerdbank.FullDuplexStream.CreateStreams();
-        var server = new JsonRpc(serverStream)
+        var server = new JsonRpc(CreateAnyHandler(serverStream))
         {
             TraceSource = new TraceSource("FlexibleNamedArgumentMatchingTests", SourceLevels.Warning),
         };
         traces = new CollectingTraceListener();
         server.TraceSource.Listeners.Add(traces);
         server.AddLocalRpcTarget(target, new JsonRpcTargetOptions { AllowFlexibleNamedArgumentMatching = true });
-        var client = new JsonRpc(clientStream);
+        var client = new JsonRpc(CreateAnyHandler(clientStream));
         server.StartListening();
         client.StartListening();
         return new RpcPair(server, client, serverStream, clientStream);

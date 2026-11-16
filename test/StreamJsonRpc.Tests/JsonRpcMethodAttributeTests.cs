@@ -138,8 +138,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string result = await clientRpc.InvokeWithCancellationAsync<string>("test/string", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
         Assert.Equal("conflicting string: Andrew", result);
@@ -155,8 +155,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>(nameof(MissingMethodAttributeOverloadBeforeServer.InvokeOverloadConflictingMethodAttribute), ["hi"], this.TimeoutToken);
         Assert.Equal("conflicting string: hi", actual);
@@ -172,8 +172,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>("test/string", ["hi"], this.TimeoutToken);
         Assert.Equal("conflicting string: hi", actual);
@@ -189,8 +189,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>("base/InvokeMethodWithAttribute", ["hi"], this.TimeoutToken);
         Assert.Equal("conflicting string: hi", actual);
@@ -203,8 +203,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>("child/InvokeVirtualMethodOverride", [], this.TimeoutToken);
         Assert.Equal("child InvokeVirtualMethodOverride", actual);
@@ -219,8 +219,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>("Second", ["hi"], this.TimeoutToken);
         Assert.Equal("third", actual);
@@ -233,8 +233,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
 
         string actual = await clientRpc.InvokeWithCancellationAsync<string>("Second", ["hi"], this.TimeoutToken);
 
@@ -250,8 +250,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
         string result = await clientRpc.InvokeWithCancellationAsync<string>("FirstAsync", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
 
         // The particular method that is invoked isn't well defined, but this one is the one
@@ -266,8 +266,8 @@ public class JsonRpcMethodAttributeTests : TestBase
 
         (Stream clientStream, Stream serverStream) = Nerdbank.FullDuplexStream.CreateStreams();
 
-        JsonRpc serverRpc = JsonRpc.Attach(serverStream, serverObject);
-        JsonRpc clientRpc = JsonRpc.Attach(clientStream);
+        JsonRpc serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), serverObject);
+        JsonRpc clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream));
         string result = await clientRpc.InvokeWithCancellationAsync<string>("First", ["Andrew"], this.TimeoutToken).WithCancellation(this.TimeoutToken);
 
         // The particular method that is invoked isn't well defined, but this one is the one
