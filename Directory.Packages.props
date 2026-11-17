@@ -27,7 +27,7 @@
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Only" Version="$(VisualStudioThreadingVersion)" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading" Version="$(VisualStudioThreadingVersion)" />
-    <PackageVersion Include="Microsoft.VisualStudio.Validation" Version="17.13.22" />
+    <PackageVersion Include="Microsoft.VisualStudio.Validation" Version="18.7.19" />
     <PackageVersion Include="Nerdbank.MessagePack" Version="1.4.95" />
     <PackageVersion Include="Nerdbank.Streams" Version="2.13.16" />
     <!-- Compile against the earliest stable 13.x API to remain compatible with older assemblies in the .NET Framework GAC. See https://github.com/microsoft/vs-streamjsonrpc/issues/1581. -->
