@@ -9,7 +9,7 @@ user-invocable: false
 * There should generally be one test project (under the `test` directory) per shipping project (under the `src` directory). Test projects are named after the project being tested with a `.Tests` suffix.
 * Tests use xUnit v3 with Microsoft.Testing.Platform (MTP v2). Traditional VSTest `--filter` syntax does NOT work.
 * Skip known unstable tests with `-- --filter-not-trait "TestCategory=FailsInCloudTest"`.
-* The main test project targets `net8.0`, `net9.0`, and, on Windows, `net472`.
+* The main test project targets `net10.0` and, on Windows, `net472`.
 
 ## Running Tests
 
@@ -54,12 +54,12 @@ dotnet test --project test\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-b
 
 **Run tests for a specific framework only**:
 ```powershell
-dotnet test --project test\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -c Release --framework net8.0
+dotnet test --project test\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -c Release --framework net10.0
 ```
 
 **List all available tests without running them**:
 ```powershell
-dotnet run --project test\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -c Release --framework net8.0 -- --list-tests
+dotnet run --project test\StreamJsonRpc.Tests\StreamJsonRpc.Tests.csproj --no-build -c Release --framework net10.0 -- --list-tests
 ```
 
 **Key points about test filtering with xUnit v3 / MTP v2**:

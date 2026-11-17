@@ -39,7 +39,7 @@ public class Workspace
             Project project = new()
             {
                 Name = $"Contoso.Project{i}",
-                TargetFramework = (i % 3) switch { 0 => "net8.0", 1 => "netstandard2.0", _ => "net472" },
+                TargetFramework = (i % 3) switch { 0 => "net10.0", 1 => "netstandard2.0", _ => "net472" },
                 IsExecutable = i % 4 == 0,
                 References = Enumerable.Range(0, 5).Select(r => $"Contoso.Dependency{(i + r) % projectCount}").ToList(),
             };
