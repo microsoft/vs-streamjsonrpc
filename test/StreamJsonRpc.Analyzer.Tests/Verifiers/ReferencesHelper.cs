@@ -9,7 +9,10 @@ internal static class ReferencesHelper
     internal static readonly string NuGetConfigPath = FindNuGetConfigPath();
 
 #if NET
-    internal static ReferenceAssemblies References = ReferenceAssemblies.Net.Net80
+    internal static ReferenceAssemblies References = new ReferenceAssemblies(
+        "net10.0",
+        new PackageIdentity("Microsoft.NETCore.App.Ref", "10.0.15"),
+        @"ref\net10.0")
         .WithNuGetConfigFilePath(NuGetConfigPath);
 #else
     internal static ReferenceAssemblies References = ReferenceAssemblies.NetStandard.NetStandard20
