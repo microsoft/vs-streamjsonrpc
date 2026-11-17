@@ -381,7 +381,7 @@ public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper lo
     protected override object[] CreateFormatterIntrinsicParamsObject(string arg) => [];
 
     [MessagePackObject]
-    [Union(0, typeof(UnionDerivedClass))]
+    [MessagePack.Union(0, typeof(UnionDerivedClass))]
     [GenerateShape]
     [DerivedTypeShape(typeof(UnionDerivedClass))]
     public abstract partial class UnionBaseClass
