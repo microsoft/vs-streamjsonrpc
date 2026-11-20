@@ -64,6 +64,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         IAsyncEnumerable<int> GetUnconsumedNumbersAsync();
 
+        IAsyncEnumerable<int> GetNumbersWithDelayedDisposalAsync();
+
         Task<IAsyncEnumerable<int>> GetWrappedNumbersAsync(int maxReadAhead, int prefetch);
 
         IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync(CancellationToken cancellationToken);
@@ -498,6 +500,26 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ClientDisconnectWaitsForPendingServerEnumeratorDisposal()
+    {
+        IAsyncEnumerable<int> enumerable = await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetNumbersWithDelayedDisposalAsync), cancellationToken: this.TimeoutToken);
+        await enumerable.GetAsyncEnumerator(this.TimeoutToken).DisposeAsync();
+        await this.server.EnumeratorDisposed.WaitAsync(this.TimeoutToken);
+
+        try
+        {
+            this.clientRpc.Dispose();
+            Assert.False(this.serverRpc.Completion.IsCompleted);
+        }
+        finally
+        {
+            this.server.AllowEnumeratorToContinue.Set();
+        }
+
+        await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+    }
+
+    [Fact]
     public async Task ClientDisconnectCancelsPendingServerMoveNext()
     {
         IAsyncEnumerable<int> enumerable = this.clientProxy.Value.WaitForCancellationAfterYieldAsync(this.TimeoutToken);
@@ -788,6 +810,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public IAsyncEnumerable<int> GetUnconsumedNumbersAsync() => new UnconsumedEnumerable(this.EnumeratorDisposed);
 
+        public IAsyncEnumerable<int> GetNumbersWithDelayedDisposalAsync() => new UnconsumedEnumerable(this.EnumeratorDisposed, this.AllowEnumeratorToContinue);
+
         public Task<IAsyncEnumerable<int>> GetWrappedNumbersAsync(int maxReadAhead, int prefetch) =>
             Task.FromResult(this.WaitForCancellationAfterYieldAsync(CancellationToken.None)
                 .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MaxReadAhead = maxReadAhead, Prefetch = prefetch }));
@@ -939,8 +963,13 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         private sealed class UnconsumedEnumerable : IAsyncEnumerable<int>, IAsyncEnumerator<int>
         {
             private readonly AsyncManualResetEvent disposed;
+            private readonly AsyncManualResetEvent? continueDisposal;
 
-            internal UnconsumedEnumerable(AsyncManualResetEvent disposed) => this.disposed = disposed;
+            internal UnconsumedEnumerable(AsyncManualResetEvent disposed, AsyncManualResetEvent? continueDisposal = null)
+            {
+                this.disposed = disposed;
+                this.continueDisposal = continueDisposal;
+            }
 
             public int Current => throw new InvalidOperationException();
 
@@ -948,10 +977,13 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
             public ValueTask<bool> MoveNextAsync() => throw new InvalidOperationException("The enumerable should not be consumed.");
 
-            public ValueTask DisposeAsync()
+            public async ValueTask DisposeAsync()
             {
                 this.disposed.Set();
-                return default;
+                if (this.continueDisposal is not null)
+                {
+                    await this.continueDisposal.WaitAsync();
+                }
             }
         }
     }

@@ -57,6 +57,8 @@ public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
 
     private readonly Dictionary<long, IGeneratingEnumeratorTracker> generatorsByToken = new Dictionary<long, IGeneratingEnumeratorTracker>();
 
+    private readonly HashSet<Task> pendingDisposals = new HashSet<Task>();
+
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
     private readonly MessageFormatterRpcMarshaledContextTracker? rpcTracker;
@@ -169,14 +171,16 @@ public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         IGeneratingEnumeratorTracker[] generators;
+        Task[] pendingDisposals;
         lock (this.syncObject)
         {
             generators = this.generatorsByToken.Values.ToArray();
+            pendingDisposals = this.pendingDisposals.ToArray();
             this.generatorsByToken.Clear();
             this.generatorTokensByRequestId.Clear();
         }
 
-        await Task.WhenAll(generators.Select(generator => generator.DisposeAsync().AsTask())).ConfigureAwait(false);
+        await Task.WhenAll(generators.Select(generator => generator.DisposeAsync().AsTask()).Concat(pendingDisposals)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -214,20 +218,34 @@ public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
         return generator.GetNextValuesAsync(cancellationToken);
     }
 
-    private ValueTask OnDisposeAsync(long token)
+    private async ValueTask OnDisposeAsync(long token)
     {
         IGeneratingEnumeratorTracker? generator;
+        TaskCompletionSource<bool> disposalCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (this.syncObject)
         {
             if (!this.generatorsByToken.TryGetValue(token, out generator))
             {
-                return default;
+                return;
             }
 
             this.generatorsByToken.Remove(token);
+            this.pendingDisposals.Add(disposalCompletion.Task);
         }
 
-        return generator.DisposeAsync();
+        try
+        {
+            await generator.DisposeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (this.syncObject)
+            {
+                this.pendingDisposals.Remove(disposalCompletion.Task);
+            }
+
+            disposalCompletion.TrySetResult(true);
+        }
     }
 
     /// <summary>

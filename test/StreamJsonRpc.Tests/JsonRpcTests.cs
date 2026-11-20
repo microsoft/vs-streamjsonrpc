@@ -2677,6 +2677,25 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.True(server.IsDisposed);
     }
 
+    [Fact]
+    public async Task DisposeOnDisconnect_DisposesEnumeratorBeforeTarget()
+    {
+        var streams = FullDuplexStream.CreatePair();
+        var server = new EnumerableDependentDisposableServer();
+        var serverRpc = new JsonRpc(streams.Item2);
+        var clientRpc = new JsonRpc(streams.Item1);
+        serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
+        serverRpc.StartListening();
+        clientRpc.StartListening();
+
+        IAsyncEnumerable<int> enumerable = await clientRpc.InvokeAsync<IAsyncEnumerable<int>>(nameof(EnumerableDependentDisposableServer.GetNumbersAsync));
+        Assert.True(await enumerable.GetAsyncEnumerator(this.TimeoutToken).MoveNextAsync());
+
+        clientRpc.Dispose();
+        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        Assert.True(server.IsDisposed);
+    }
+
     [Theory]
     [CombinatorialData]
     public async Task DisposeOnDisconnect_VsThreadingAsyncDisposable(bool throwFromDispose)
@@ -4357,6 +4376,31 @@ public abstract partial class JsonRpcTests : TestBase
             }
 
             return default;
+        }
+    }
+
+    public class EnumerableDependentDisposableServer : System.IAsyncDisposable
+    {
+        private readonly AsyncManualResetEvent enumeratorDisposed = new AsyncManualResetEvent();
+
+        internal bool IsDisposed { get; private set; }
+
+        public async IAsyncEnumerable<int> GetNumbersAsync()
+        {
+            try
+            {
+                yield return 1;
+            }
+            finally
+            {
+                this.enumeratorDisposed.Set();
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await this.enumeratorDisposed.WaitAsync();
+            this.IsDisposed = true;
         }
     }
 

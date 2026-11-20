@@ -2927,15 +2927,6 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
         try
         {
-            await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            exceptions.Add(ex);
-        }
-
-        try
-        {
             this.rpcMarshaledContextTracker?.CleanUpOnDisconnect();
         }
         catch (Exception ex)
@@ -2958,6 +2949,15 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             {
                 await this.enumerableTracker.DisposeAsync().ConfigureAwait(false);
             }
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
