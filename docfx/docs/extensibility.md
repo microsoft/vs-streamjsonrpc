@@ -99,23 +99,23 @@ StreamJsonRpc includes the following <xref:StreamJsonRpc.IJsonRpcMessageFormatte
 
    Learn more about [witness classes](https://aarnott.github.io/Nerdbank.MessagePack/docs/type-shapes.html#witness-classes) and [customizing serialization](https://aarnott.github.io/Nerdbank.MessagePack/docs/customizing-serialization.html).
 
-1. <xref:StreamJsonRpc.JsonMessageFormatter> - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
-    The text encoding is configurable via a property.
-    All RPC method parameters and return types must be serializable by Newtonsoft.Json.
-    You can leverage `JsonConverter` and add your custom converters via attributes or by
-    contributing them to the `JsonMessageFormatter.JsonSerializer.Converters` collection.
-
-1. <xref:StreamJsonRpc.MessagePackFormatter> - Uses the [MessagePack-CSharp][MessagePackCSharp] library to serialize each
-    JSON-RPC message using the very fast and compact binary [MessagePack format][MessagePackFormat].
-    All RPC method parameters and return types must be serializable by `IMessagePackFormatter<T>`.
-    You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
-    See alternative formatters below.
-
 1. <xref:StreamJsonRpc.SystemTextJsonFormatter> - Uses the [`System.Text.Json` library][SystemTextJson] to serialize each
     JSON-RPC message as UTF-8 encoded JSON.
     All RPC method parameters and return types must be serializable by System.Text.Json.
     You can leverage `JsonConverter<T>` and add your custom converters via attributes or by
     contributing them to the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType>.<xref:System.Text.Json.JsonSerializerOptions.Converters> collection.
+
+1. **(Obsolete)** <xref:StreamJsonRpc.JsonMessageFormatter> - Uses Newtonsoft.Json to serialize each JSON-RPC message as actual JSON.
+    The text encoding is configurable via a property.
+    All RPC method parameters and return types must be serializable by Newtonsoft.Json.
+    You can leverage `JsonConverter` and add your custom converters via attributes or by
+    contributing them to the `JsonMessageFormatter.JsonSerializer.Converters` collection.
+
+1. **(Obsolete)** <xref:StreamJsonRpc.MessagePackFormatter> - Uses the [MessagePack-CSharp][MessagePackCSharp] library to serialize each
+    JSON-RPC message using the very fast and compact binary [MessagePack format][MessagePackFormat].
+    All RPC method parameters and return types must be serializable by `IMessagePackFormatter<T>`.
+    You can contribute your own via `MessagePackFormatter.SetOptions(MessagePackSerializationOptions)`.
+    See alternative formatters below.
 
 When authoring a custom <xref:StreamJsonRpc.IJsonRpcMessageFormatter> implementation, consider supporting the [exotic types](../exotic_types/index.md) that require formatter participation.
 We have helper classes to make this straightforward.
