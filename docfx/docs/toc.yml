@@ -1,5 +1,8 @@
 items:
-- href: getting-started.md
+- name: Overview
+  href: ../index.md
+- name: Getting Started
+  href: getting-started.md
 - href: fsharp.md
 - href: connecting.md
 - href: sendrequest.md

@@ -1,7 +1,3 @@
----
-_layout: landing
----
-
 # Overview
 
 ## Protocol overview
@@ -26,6 +22,18 @@ StreamJsonRpc is a .NET library that implements the JSON-RPC protocol and expose
 send and receive RPC requests.
 
 StreamJsonRpc works on any transport (e.g. Stream, WebSocket, Pipe).
+
+## Getting started
+
+Install StreamJsonRpc from NuGet:
+
+[![NuGet package](https://img.shields.io/nuget/v/StreamJsonRpc.svg)](https://nuget.org/packages/StreamJsonRpc)
+
+```console
+dotnet add package StreamJsonRpc
+```
+
+See [Getting Started](docs/getting-started.md) for installation guidance and links to the use-case guides.
 
 ## Security
 
