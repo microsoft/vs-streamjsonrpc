@@ -64,6 +64,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         IAsyncEnumerable<int> GetUnconsumedNumbersAsync();
 
+        Task<IAsyncEnumerable<int>> GetWrappedNumbersAsync(int maxReadAhead, int prefetch);
+
         IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync(CancellationToken cancellationToken);
@@ -511,6 +513,26 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await Assert.ThrowsAsync<ConnectionLostException>(async () => await pendingMoveNext);
     }
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    [InlineData(1, 1)]
+    public async Task ClientDisconnectCancelsWrappedServerEnumerator(int maxReadAhead, int prefetch)
+    {
+        IAsyncEnumerable<int> enumerable = await this.clientProxy.Value.GetWrappedNumbersAsync(maxReadAhead, prefetch);
+        IAsyncEnumerator<int> enumerator = enumerable.GetAsyncEnumerator(this.TimeoutToken);
+        Assert.True(await enumerator.MoveNextAsync());
+
+        ValueTask<bool> pendingMoveNext = enumerator.MoveNextAsync();
+        Assert.False(pendingMoveNext.IsCompleted);
+        this.clientRpc.Dispose();
+
+        await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        await this.server.MethodExited.WaitAsync(this.TimeoutToken);
+        await Assert.ThrowsAsync<ConnectionLostException>(async () => await pendingMoveNext);
+    }
+
     [Fact]
     public async Task NotifyAsync_ThrowsIfAsyncEnumerableSent()
     {
@@ -765,6 +787,10 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         public IAsyncEnumerable<int> GetNumbersNoCancellationAsync() => this.GetNumbersAsync(CancellationToken.None);
 
         public IAsyncEnumerable<int> GetUnconsumedNumbersAsync() => new UnconsumedEnumerable(this.EnumeratorDisposed);
+
+        public Task<IAsyncEnumerable<int>> GetWrappedNumbersAsync(int maxReadAhead, int prefetch) =>
+            Task.FromResult(this.WaitForCancellationAfterYieldAsync(CancellationToken.None)
+                .WithJsonRpcSettings(new JsonRpcEnumerableSettings { MaxReadAhead = maxReadAhead, Prefetch = prefetch }));
 
         public async IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {

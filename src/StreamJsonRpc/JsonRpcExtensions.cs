@@ -201,6 +201,7 @@ public static class JsonRpcExtensions
         {
             Verify.Operation(!this.enumeratorRequested, Resources.CannotBeCalledAfterGetAsyncEnumerator);
             this.enumeratorRequested = true;
+            this.innerEnumerator.LinkToLifetime(cancellationToken);
             return this.innerEnumerator;
         }
 
@@ -210,6 +211,7 @@ public static class JsonRpcExtensions
         {
             private readonly IAsyncEnumerator<T> innerEnumerator;
             private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+            private CancellationTokenRegistration lifetimeCancellationRegistration;
             private List<T>? prefetchedElements;
 
             private bool finished;
@@ -223,9 +225,17 @@ public static class JsonRpcExtensions
 
             public T Current => this.moveNextHasBeenCalled && this.prefetchedElements?.Count > 0 ? this.prefetchedElements[0] : this.innerEnumerator.Current;
 
-            public ValueTask DisposeAsync()
+            public async ValueTask DisposeAsync()
             {
-                return this.innerEnumerator.DisposeAsync();
+                try
+                {
+                    await this.innerEnumerator.DisposeAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    this.lifetimeCancellationRegistration.Dispose();
+                    this.cancellationTokenSource.Dispose();
+                }
             }
 
             public ValueTask<bool> MoveNextAsync()
@@ -245,6 +255,12 @@ public static class JsonRpcExtensions
 
                 return this.innerEnumerator.MoveNextAsync();
             }
+
+            /// <summary>
+            /// Links the consumer's cancellation token to the underlying enumerator for its remaining lifetime.
+            /// </summary>
+            /// <param name="cancellationToken">The consumer's cancellation token.</param>
+            internal void LinkToLifetime(CancellationToken cancellationToken) => this.lifetimeCancellationRegistration = this.LinkToCancellation(cancellationToken);
 
             internal (IReadOnlyList<T> Elements, bool Finished) TearOffPrefetchedElements()
             {
