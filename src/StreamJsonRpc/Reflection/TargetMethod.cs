@@ -155,7 +155,10 @@ public sealed class TargetMethod
         return this.signature is not null ? $"{this.signature.MethodInfo.DeclaringType?.FullName}.{this.signature.Name}({this.GetParameterSignature()})" : "<no method>";
     }
 
-    internal async Task<object?> InvokeAsync(CancellationToken cancellationToken)
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
+    internal async ValueTask<object?> InvokeAsync(CancellationToken cancellationToken)
     {
         if (this.signature is null)
         {

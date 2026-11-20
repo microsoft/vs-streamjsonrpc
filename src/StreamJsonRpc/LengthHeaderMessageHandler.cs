@@ -67,6 +67,9 @@ public class LengthHeaderMessageHandler : PipeMessageHandler
     }
 
     /// <inheritdoc/>
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
         Assumes.NotNull(this.Reader);

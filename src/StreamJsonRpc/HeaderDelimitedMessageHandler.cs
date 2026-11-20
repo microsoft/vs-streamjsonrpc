@@ -167,6 +167,9 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
     private IJsonRpcMessageTextFormatter TextFormatter => this.Formatter as IJsonRpcMessageTextFormatter ?? throw this.ThrowNoTextEncoder();
 
     /// <inheritdoc />
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
         (int? ContentLength, Encoding? ContentEncoding)? headers = await this.ReadHeadersAsync(cancellationToken).ConfigureAwait(false);
@@ -392,6 +395,9 @@ public class HeaderDelimitedMessageHandler : PipeMessageHandler
         return span;
     }
 
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
     private async ValueTask<(int? ContentLength, Encoding? ContentEncoding)?> ReadHeadersAsync(CancellationToken cancellationToken)
     {
         bool IsHeaderName(ReadOnlySequence<byte> buffer, ReadOnlySpan<byte> asciiHeaderName)

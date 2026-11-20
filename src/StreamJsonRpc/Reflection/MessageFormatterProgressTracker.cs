@@ -43,6 +43,16 @@ public class MessageFormatterProgressTracker
     private readonly IJsonRpcFormatterState formatterState;
 
     /// <summary>
+    /// The callbacks to subscribe to for cleaning up resources when a request completes.
+    /// </summary>
+    private readonly IJsonRpcFormatterCallbacks formatterCallbacks;
+
+    /// <summary>
+    /// A flag indicating whether this tracker has subscribed to <see cref="formatterCallbacks"/>.
+    /// </summary>
+    private int cleanupSubscribed;
+
+    /// <summary>
     /// Gets or sets the the next id value to assign as token for the progress objects.
     /// </summary>
     private long nextProgressId;
@@ -59,9 +69,9 @@ public class MessageFormatterProgressTracker
 
         this.formatterState = formatterState;
 
-        IJsonRpcFormatterCallbacks callbacks = jsonRpc;
-        callbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
-        callbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
+        // The event handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections
+        // that never marshal an IProgress<T> do not pay the per-response cost of raising these events.
+        this.formatterCallbacks = jsonRpc;
     }
 
     /// <summary>
@@ -114,6 +124,8 @@ public class MessageFormatterProgressTracker
 
         lock (this.progressLock)
         {
+            this.EnsureCleanupSubscribed();
+
             // Check whether we're being asked to tokenize a Progress<T> object for a second time (this can happen due to message logging).
             if (this.requestProgressMap.TryGetValue(this.RequestIdBeingSerialized, out ImmutableList<ProgressParamInformation>? progressInfos))
             {
@@ -191,6 +203,22 @@ public class MessageFormatterProgressTracker
 
         Type progressType = typeof(ProgressProxy<>).MakeGenericType(valueType.GenericTypeArguments[0]);
         return Activator.CreateInstance(progressType, [rpc, token, clientRequiresNamedArguments])!;
+    }
+
+    /// <summary>
+    /// Subscribes to the events that clean up tracked progress objects, if not already subscribed.
+    /// </summary>
+    /// <remarks>
+    /// This must be called before adding the first entry to <see cref="requestProgressMap"/> so that
+    /// no tracked resource can be missed by the cleanup handlers.
+    /// </remarks>
+    private void EnsureCleanupSubscribed()
+    {
+        if (Interlocked.CompareExchange(ref this.cleanupSubscribed, 1, 0) == 0)
+        {
+            this.formatterCallbacks.RequestTransmissionAborted += (s, e) => this.CleanUpResources(e.RequestId);
+            this.formatterCallbacks.ResponseReceived += (s, e) => this.CleanUpResources(e.RequestId);
+        }
     }
 
     private void CleanUpResources(RequestId requestId)

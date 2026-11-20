@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net10.0</TargetFrameworks>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -10,7 +10,7 @@
     <!-- We use the ISerializable APIs *without* the BinaryFormatter. Not as obsolete as the .NET SDK would have us believe. -->
     <NoWarn>$(NoWarn);SYSLIB0050</NoWarn>
     <!-- Enable warnings regarding AOT compatibility. Learn more about testing strategies at https://devblogs.microsoft.com/dotnet/creating-aot-compatible-libraries/ -->
-    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net10.0'))">true</IsAotCompatible>
     <EnableStreamJsonRpcInterceptors>false</EnableStreamJsonRpcInterceptors>
     <PackageValidationBaselineVersion>2.25.25</PackageValidationBaselineVersion>
   </PropertyGroup>

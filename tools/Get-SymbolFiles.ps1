@@ -21,7 +21,7 @@ $PDBs = Get-ChildItem -rec "$Path/*.pdb"
 $PDBs = $PDBs | Where-Object { $_.FullName -notmatch "[\\/](Samples|FSharpSample)[\\/]" }
 
 # Filter PDBs to product OR test related.
-$testregex = "unittest|tests|\.test\.|Benchmarks|UnreachableAssembly"
+$testregex = "unittest|tests|\.test\.|Benchmarks|UnreachableAssembly|NativeAOTCompatibility"
 
 Write-Progress -Activity $ActivityName -CurrentOperation "De-duplicating symbols"
 $PDBsByHash = @{}

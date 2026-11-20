@@ -13,6 +13,10 @@
     A switch to run the tests in an x86 process.
 .PARAMETER dotnet32
     The path to a 32-bit dotnet executable to use.
+.PARAMETER netfxOnly
+    Runs only the .NET Framework tests.
+.PARAMETER logIsolationName
+    Separates logs and result titles for additional test runs.
 .PARAMETER NoCoverage
     A switch to skip code coverage collection.
 #>
@@ -57,6 +61,9 @@ $testLogs = Join-Path $ArtifactStagingFolder test_logs
 if ($logIsolationName) {
     $testLogs = Join-Path $testLogs $logIsolationName
 }
+if (Test-Path -LiteralPath $testLogs) {
+    Remove-Item -LiteralPath $testLogs -Recurse -Force
+}
 
 $globalJson = Get-Content $PSScriptRoot/../global.json | ConvertFrom-Json
 $isMTP = $globalJson.test.runner -eq 'Microsoft.Testing.Platform'
@@ -78,6 +85,7 @@ if ($isMTP) {
         ,'--crash-report-if-supported'
     )
     $mtpArgs = @(
+        ,'--filter-not-trait','TestCategory=FailsInCloudTest'
         ,'--diagnostic'
         ,'--diagnostic-output-directory',$testLogs
         ,'--diagnostic-verbosity','Information'
@@ -106,7 +114,6 @@ if ($isMTP) {
         -bl:"$testBinLog" `
         @dotnetArgs `
         -- `
-        --filter-not-trait 'TestCategory=FailsInCloudTest' `
         @mtpArgs `
         @dumpSwitches
     if ($LASTEXITCODE -ne 0) { $failedTests += 1 }
@@ -153,7 +160,7 @@ $trxFiles |% {
       $storage = $x.TestRun.TestDefinitions.GetElementsByTagName('UnitTest')[0].storage -replace '\\','/'
       if ($storage -match '/(?<tfm>net[^/]+)/(?:(?<rid>[^/]+)/)?(?<lib>[^/]+)\.(dll|exe)$') {
         if ($matches.rid) {
-          $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid), $Agent)"
+          $runTitle = "$($matches.lib) ($($matches.tfm), $($matches.rid)$x86RunTitleSuffix$runTitleIsolationSuffix, $Agent)"
         } else {
           $runTitle = "$($matches.lib) ($($matches.tfm)$x86RunTitleSuffix$runTitleIsolationSuffix, $Agent)"
         }

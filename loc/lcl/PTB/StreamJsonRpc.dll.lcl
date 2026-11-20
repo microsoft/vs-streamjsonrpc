@@ -623,7 +623,7 @@
         <Str Cat="Text">
           <Val><![CDATA[The {0} and {1} parameters exceed length of array.]]></Val>
           <Tgt Cat="Text" Stat="Loc" Orig="New">
-            <Val><![CDATA[Os {0} e {1} excedam o comprimento da matriz.]]></Val>
+            <Val><![CDATA[Os parâmetros {0} e {1} excedem o comprimento da matriz.]]></Val>
           </Tgt>
         </Str>
         <Disp Icon="Str" />

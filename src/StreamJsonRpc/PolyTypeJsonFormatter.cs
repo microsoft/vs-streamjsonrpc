@@ -18,6 +18,7 @@ using Nerdbank.Streams;
 using PolyType;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
+using RequestIdSTJsonConverter = StreamJsonRpc.SystemTextJsonFormatter.RequestIdSTJsonConverter;
 
 namespace StreamJsonRpc;
 

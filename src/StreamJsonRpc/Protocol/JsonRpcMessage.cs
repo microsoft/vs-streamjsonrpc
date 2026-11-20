@@ -26,7 +26,7 @@ public abstract partial class JsonRpcMessage
     /// <value>Defaults to "2.0".</value>
     [DataMember(Name = "jsonrpc", Order = 0, IsRequired = true)]
     [STJ.JsonPropertyName("jsonrpc"), STJ.JsonPropertyOrder(0), STJ.JsonRequired]
-    [PropertyShape(Name = "jsonrpc", Order = 0)]
+    [PropertyShape(Name = "jsonrpc", Order = 0, IsRequired = true)]
     public string Version { get; set; } = "2.0";
 
     /// <summary>

@@ -5,14 +5,37 @@
 		"github>microsoft/vs-renovate-presets:vs_main_dependencies",
 		"github>microsoft/vs-renovate-presets:dotnet_packages_LTS"
 	],
+	"labels": ["dependencies"],
 	"packageRules": [
 		{
 			"matchPackageNames": ["Microsoft.AspNetCore.TestHost"],
 			"allowedVersions": "<2.4"
 		},
 		{
+			"description": "Keep the earliest stable Newtonsoft.Json 13.x API for .NET Framework GAC compatibility. See https://github.com/microsoft/vs-streamjsonrpc/issues/1581.",
+			"matchPackageNames": ["Newtonsoft.Json"],
+			"enabled": false
+		},
+		{
 			"matchFileNames": ["Directory.Packages.Analyzers.props"],
 			"enabled": false
+		},
+		{
+			"matchPackageNames": ["nbgv", "nerdbank.gitversioning"],
+			"groupName": "nbgv and nerdbank.gitversioning updates"
+		},
+		{
+			"matchPackageNames": ["xunit*"],
+			"groupName": "xunit"
+		},
+		{
+			"matchPackageNames": ["Microsoft.Testing.Extensions.*"],
+			"groupName": "Microsoft Testing Platform"
+		},
+		{
+			"matchDatasources": ["dotnet-version", "docker"],
+			"matchDepNames": ["dotnet-sdk", "mcr.microsoft.com/dotnet/sdk"],
+			"groupName": "Dockerfile and global.json updates"
 		}
 	]
 }
