@@ -4609,7 +4609,7 @@ public abstract partial class JsonRpcTests : TestBase
         {
         }
 
-#if NET8_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         protected PrivateSerializableException(
@@ -4705,7 +4705,7 @@ public abstract partial class JsonRpcTests : TestBase
         {
         }
 
-#if NET8_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -4748,7 +4748,7 @@ public abstract partial class JsonRpcTests : TestBase
         {
         }
 
-#if NET8_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         protected ThrowOnSerializeException(SerializationInfo info, StreamingContext context)
@@ -4757,7 +4757,7 @@ public abstract partial class JsonRpcTests : TestBase
             // Unlikely to ever be called since serialization throws, but complete the pattern so we test exactly what we mean to.
         }
 
-#if NET8_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

@@ -570,7 +570,7 @@ public abstract class JsonRpcClient20InteropTests : InteropTestBase
         {
         }
 
-#if NET8_0_OR_GREATER
+#if NET
         [Obsolete]
 #endif
         protected PrivateSerializableException(

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <OutputType>exe</OutputType>
     <RootNamespace />
@@ -32,9 +32,9 @@
     <PackageReference Include="Microsoft.AspNetCore" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
-    <PackageReference Include="System.IO.Pipes" />
-    <PackageReference Include="System.Net.Http" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.IO.Pipes" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Condition="'$(TargetFramework)' == 'net472'" />
     <PackageReference Include="System.ValueTuple" />
     <PackageReference Include="xunit.combinatorial" />
     <PackageReference Include="xunit.runner.console" />
