@@ -135,8 +135,8 @@ public class CustomCancellationStrategyTests : TestBase
 
     protected virtual void InitializeFormattersAndHandlers()
     {
-        this.serverMessageFormatter = new JsonMessageFormatter();
-        this.clientMessageFormatter = new JsonMessageFormatter();
+        this.serverMessageFormatter = CreateAnyFormatter();
+        this.clientMessageFormatter = CreateAnyFormatter();
 
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.serverMessageFormatter);
         this.clientMessageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.clientMessageFormatter);

@@ -33,6 +33,7 @@ namespace StreamJsonRpc;
 /// Each instance of this class may only be used with a single <see cref="JsonRpc" /> instance.
 /// </remarks>
 [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
+[Obsolete($"Newtonsoft.Json support is deprecated and may be removed in a future version. Consider using System.Text.Json instead via {nameof(SystemTextJsonFormatter)}.")]
 public class JsonMessageFormatter : FormatterBase, IJsonRpcAsyncMessageTextFormatter, IJsonRpcMessageFactory
 {
     /// <summary>

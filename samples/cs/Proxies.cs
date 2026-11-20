@@ -5,7 +5,8 @@ namespace Proxies
         static async Task WithoutProxies(Stream rpcStream)
         {
             #region WithoutProxies
-            using JsonRpc jsonRpc = JsonRpc.Attach(rpcStream);
+            HeaderDelimitedMessageHandler handler = new(rpcStream, new SystemTextJsonFormatter());
+            using JsonRpc jsonRpc = JsonRpc.Attach(handler);
             int sum = await jsonRpc.InvokeAsync<int>("AddAsync", 2, 5);
             #endregion
         }
@@ -13,7 +14,8 @@ namespace Proxies
         #region WithProxies
         static async Task WithProxies(Stream rpcStream)
         {
-            ICalculator calc = JsonRpc.Attach<ICalculator>(rpcStream);
+            HeaderDelimitedMessageHandler handler = new(rpcStream, new SystemTextJsonFormatter());
+            ICalculator calc = JsonRpc.Attach<ICalculator>(handler);
             using (calc as IDisposable)
             {
                 int sum = await calc.AddAsync(2, 5);
@@ -38,7 +40,8 @@ namespace Proxies
         static async Task MultipleProxiesOption1(Stream rpcStream)
         {
             #region MultipleProxiesPattern3
-            ICalculator calculator = JsonRpc.Attach<ICalculator>(rpcStream);
+            HeaderDelimitedMessageHandler handler = new(rpcStream, new SystemTextJsonFormatter());
+            ICalculator calculator = JsonRpc.Attach<ICalculator>(handler);
             JsonRpc rpc = ((IJsonRpcClientProxy)calculator).JsonRpc;
             IAdvancedCalculator advancedCalculator = rpc.Attach<IAdvancedCalculator>();
             using (calculator as IDisposable)
@@ -53,7 +56,8 @@ namespace Proxies
         static async Task MultipleProxiesOption2(Stream rpcStream)
         {
             #region MultipleProxiesPattern2
-            using JsonRpc rpc = JsonRpc.Attach(rpcStream);
+            HeaderDelimitedMessageHandler handler = new(rpcStream, new SystemTextJsonFormatter());
+            using JsonRpc rpc = JsonRpc.Attach(handler);
             ICalculator calculator = rpc.Attach<ICalculator>();
             IAdvancedCalculator advancedCalculator = rpc.Attach<IAdvancedCalculator>();
             using (calculator as IDisposable)
@@ -68,7 +72,8 @@ namespace Proxies
         static async Task MultipleProxiesOption3(Stream rpcStream)
         {
             #region MultipleProxiesPattern1
-            using JsonRpc rpc = JsonRpc.Attach(rpcStream);
+            HeaderDelimitedMessageHandler handler = new(rpcStream, new SystemTextJsonFormatter());
+            using JsonRpc rpc = JsonRpc.Attach(handler);
             object combinedProxy = rpc.Attach([typeof(ICalculator), typeof(IAdvancedCalculator)], options: null);
             ICalculator calculator = (ICalculator)combinedProxy;
             IAdvancedCalculator advancedCalculator = (IAdvancedCalculator)combinedProxy;

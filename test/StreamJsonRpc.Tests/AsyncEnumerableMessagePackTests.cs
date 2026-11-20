@@ -4,6 +4,7 @@
 using MessagePack;
 using MessagePack.Resolvers;
 
+[Obsolete(ObsoleteFormatter)]
 public class AsyncEnumerableMessagePackTests : AsyncEnumerableTests
 {
     public AsyncEnumerableMessagePackTests(ITestOutputHelper logger)

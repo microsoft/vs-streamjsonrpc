@@ -9,9 +9,12 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     private readonly JsonRpc remoteRpc2;
     private readonly RemoteTargetJsonRpc remoteTarget1;
     private readonly JsonRpc interopLocalRpc;
+    private readonly OriginTarget originTarget = new();
+    private readonly RemoteTargetOne remoteTargetOne = new();
+    private readonly LocalOriginTarget localOriginTarget;
 
-    public JsonRpcRemoteTargetTests(ITestOutputHelper logger)
-       : base(logger)
+    protected JsonRpcRemoteTargetTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
+       : base(formatter, logger)
     {
         /* originRpc is the RPC connection from origin to local.
          * localRpc is the RPC connection from local to origin.
@@ -23,8 +26,7 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         this.localRpc.AllowModificationWhileListening = true;
         this.localRpc.StartListening();
 
-        this.originRpc = new RemoteTargetJsonRpc(streams.Item1, streams.Item1, new OriginTarget());
-        this.originRpc.AddLocalRpcTarget(new OriginTarget());
+        this.originRpc = new RemoteTargetJsonRpc(this.CreateHandler(streams.Item1, streams.Item1), this.originTarget);
         this.originRpc.StartListening();
 
         var remoteStreams1 = Nerdbank.FullDuplexStream.CreateStreams();
@@ -35,20 +37,21 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         var remoteServerStream2 = remoteStreams2.Item1;
         var remoteClientStream2 = remoteStreams2.Item2;
 
-        this.remoteTarget1 = new RemoteTargetJsonRpc(remoteClientStream1, remoteClientStream1, new LocalRelayTarget());
+        this.remoteTarget1 = new RemoteTargetJsonRpc(this.CreateHandler(remoteClientStream1, remoteClientStream1), new LocalRelayTarget());
         this.remoteTarget1.AllowModificationWhileListening = true;
         this.remoteTarget1.StartListening();
 
-        var remoteTarget2 = JsonRpc.Attach(remoteClientStream2, remoteClientStream2, new LocalRelayTarget());
+        var remoteTarget2 = JsonRpc.Attach(this.CreateHandler(remoteClientStream2, remoteClientStream2), new LocalRelayTarget());
         remoteTarget2.AllowModificationWhileListening = true;
 
-        this.remoteRpc1 = new JsonRpc(this.CreateHandler(remoteServerStream1, remoteServerStream1), new RemoteTargetOne());
+        this.remoteRpc1 = new JsonRpc(this.CreateHandler(remoteServerStream1, remoteServerStream1), this.remoteTargetOne);
         this.remoteRpc1.StartListening();
 
         this.remoteRpc2 = new JsonRpc(this.CreateHandler(remoteServerStream2, remoteServerStream2), new RemoteTargetTwo());
         this.remoteRpc2.StartListening();
 
-        this.localRpc.AddLocalRpcTarget(new LocalOriginTarget(this.remoteTarget1));
+        this.localOriginTarget = new LocalOriginTarget(this.remoteTarget1, this.remoteTargetOne);
+        this.localRpc.AddLocalRpcTarget(this.localOriginTarget);
         this.localRpc.AddRemoteRpcTarget(this.remoteTarget1);
         this.localRpc.AddRemoteRpcTarget(remoteTarget2);
         this.remoteTarget1.AddRemoteRpcTarget(this.localRpc);
@@ -70,7 +73,7 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanNotifyOnRemoteTargetServer()
     {
         await this.originRpc.NotifyAsync(nameof(RemoteTargetOne.GetOne));
-        var result = await RemoteTargetOne.NotificationReceived.WithCancellation(this.TimeoutToken);
+        var result = await this.remoteTargetOne.NotificationReceived.WithCancellation(this.TimeoutToken);
         Assert.Equal(1, result);
     }
 
@@ -85,7 +88,7 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanNotifyOnOriginServer()
     {
         await this.remoteRpc1.NotifyAsync(nameof(OriginTarget.GetTwo));
-        var result = await OriginTarget.NotificationReceived.WithCancellation(this.TimeoutToken);
+        var result = await this.originTarget.NotificationReceived.WithCancellation(this.TimeoutToken);
         Assert.Equal(2, result);
     }
 
@@ -135,12 +138,11 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     public async Task CanCancelOnRemoteTarget()
     {
         var tokenSource = new CancellationTokenSource();
-        RemoteTargetOne.CancellableRemoteOperationEntered.Reset();
         var task = this.originRpc.InvokeWithCancellationAsync<bool>(nameof(RemoteTargetOne.CancellableRemoteOperation), cancellationToken: tokenSource.Token);
 
         // Don't cancel the token until we've entered the method, since the point is the RPC method receives the notice,
         // not that we cancel before it's even transmitted.
-        await RemoteTargetOne.CancellableRemoteOperationEntered.WaitAsync(this.TimeoutToken);
+        await this.remoteTargetOne.CancellableRemoteOperationEntered.WaitAsync(this.TimeoutToken);
         tokenSource.Cancel();
 
         var result = await task;
@@ -152,7 +154,7 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     {
         var tokenSource = new CancellationTokenSource();
         Task<bool> task = this.remoteRpc1.InvokeWithCancellationAsync<bool>(nameof(OriginTarget.CancellableOriginOperation), cancellationToken: tokenSource.Token);
-        await OriginTarget.CancellableOriginOperationReached.WaitAsync(this.TimeoutToken);
+        await this.originTarget.CancellableOriginOperationReached.WaitAsync(this.TimeoutToken);
         tokenSource.Cancel();
         bool result = await task;
         Assert.True(result);
@@ -201,8 +203,6 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         // - both requests are kicked off without awaits.
         // - SynchronizationContext waits for both requests to be in the queue and then processes.
         // - Verify that the local call is ordered first, followed by its call to remote target (first await), then followed by the relayed remote call (because the GetInvokeCountAsync has a delay).
-        Counter.CurrentCount = 0;
-
         this.localRpc.SynchronizationContext = new RpcOrderPreservingSynchronizationContext();
         ((RpcOrderPreservingSynchronizationContext)this.localRpc.SynchronizationContext).ExpectedTasksQueued = 2;
 
@@ -211,7 +211,7 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 
         await Task.WhenAll(relaySleepCallTask, remoteCallTask);
 
-        Assert.Equal(1, LocalOriginTarget.InvokeCount);
+        Assert.Equal(1, this.localOriginTarget.InvokeCount);
         Assert.Equal(2, await relaySleepCallTask);
         Assert.Equal(3, await remoteCallTask);
     }
@@ -226,8 +226,6 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         // - SynchronizationContext waits for both requests to be in the queue and then processes.
         // - Verify that the local call is ordered first, followed by the relayed remote call, followed by the local call to remote target.  The local call to the remote target happens last because Task.Delay would yield and process the continuation off the synchronization context.
         // The delay time in GetIntAfterDelayAsync is also longer than the delay in GetInvokeCountAsync.
-        Counter.CurrentCount = 0;
-
         this.localRpc.SynchronizationContext = new RpcOrderPreservingSynchronizationContext();
         ((RpcOrderPreservingSynchronizationContext)this.localRpc.SynchronizationContext).ExpectedTasksQueued = 2;
 
@@ -236,33 +234,16 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 
         await Task.WhenAll(relayDelayCallTask, remoteCallTask);
 
-        Assert.Equal(1, LocalOriginTarget.InvokeCount);
+        Assert.Equal(1, this.localOriginTarget.InvokeCount);
         Assert.Equal(3, await relayDelayCallTask);
         Assert.Equal(2, await remoteCallTask);
     }
 
-    protected virtual IJsonRpcMessageHandler CreateHandler(Stream sending, Stream receiving) => new HeaderDelimitedMessageHandler(sending, receiving, this.CreateFormatter());
-
-    protected abstract IJsonRpcMessageFormatter CreateFormatter();
-
-    public static class Counter
-    {
-        public static int CurrentCount;
-    }
+    protected virtual IJsonRpcMessageHandler CreateHandler(Stream sending, Stream receiving) => new HeaderDelimitedMessageHandler(sending, receiving, this.Formatter);
 
 #pragma warning disable CA1801 // Review unused parameters
     public class RemoteTargetJsonRpc : JsonRpc
     {
-        public RemoteTargetJsonRpc(Stream stream)
-            : base(stream)
-        {
-        }
-
-        public RemoteTargetJsonRpc(Stream sendingStream, Stream receivingStream, object? target = null)
-            : base(sendingStream, receivingStream, target)
-        {
-        }
-
         public RemoteTargetJsonRpc(IJsonRpcMessageHandler messageHandler, object? target)
             : base(messageHandler, target)
         {
@@ -282,16 +263,12 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 
     public class RemoteTargetOne
     {
-        internal static readonly AsyncManualResetEvent CancellableRemoteOperationEntered = new AsyncManualResetEvent();
+        internal readonly AsyncManualResetEvent CancellableRemoteOperationEntered = new();
 
-        private static TaskCompletionSource<int> notificationTcs = new TaskCompletionSource<int>();
+        private readonly TaskCompletionSource<int> notificationTcs = new();
+        private int currentCount;
 
-        public static Task<int> NotificationReceived => notificationTcs.Task;
-
-        public static void GetOne()
-        {
-            notificationTcs.SetResult(1);
-        }
+        public Task<int> NotificationReceived => this.notificationTcs.Task;
 
         public static int AddOne(int value)
         {
@@ -309,9 +286,19 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
             return value + 1;
         }
 
-        public static async Task<bool> CancellableRemoteOperation(CancellationToken token)
+        public static bool GenerateException(int value)
         {
-            CancellableRemoteOperationEntered.Set();
+            throw new InvalidOperationException("Invalid " + nameof(GenerateException));
+        }
+
+        public void GetOne()
+        {
+            this.notificationTcs.SetResult(1);
+        }
+
+        public async Task<bool> CancellableRemoteOperation(CancellationToken token)
+        {
+            this.CancellableRemoteOperationEntered.Set();
             var retryIndex = 0;
             while (retryIndex < 100)
             {
@@ -333,27 +320,20 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
             return false;
         }
 
-        public static bool GenerateException(int value)
-        {
-            throw new InvalidOperationException("Invalid " + nameof(GenerateException));
-        }
-
         public Task<int> GetIntAfterSleepAsync()
         {
-            var result = Interlocked.Increment(ref Counter.CurrentCount);
-            return Task.FromResult(result);
+            return Task.FromResult(this.RecordInvocation());
         }
 
         public Task<int> GetIntAfterDelayAsync()
         {
-            var result = Interlocked.Increment(ref Counter.CurrentCount);
-            return Task.FromResult(result);
+            return Task.FromResult(this.RecordInvocation());
         }
 
         public async Task<int> GetInvokeCountAsync()
         {
             await Task.Delay(50);
-            return Interlocked.Increment(ref Counter.CurrentCount);
+            return this.RecordInvocation();
         }
 
         public string GetName()
@@ -367,6 +347,8 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         }
 
         public int EchoInt(int value) => value;
+
+        internal int RecordInvocation() => Interlocked.Increment(ref this.currentCount);
     }
 
     public class RemoteTargetTwo
@@ -390,13 +372,15 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
     public class LocalOriginTarget
     {
         private readonly JsonRpc remoteRpc;
+        private readonly RemoteTargetOne remoteTarget;
 
-        public LocalOriginTarget(JsonRpc remoteRpc)
+        public LocalOriginTarget(JsonRpc remoteRpc, RemoteTargetOne remoteTarget)
         {
             this.remoteRpc = remoteRpc;
+            this.remoteTarget = remoteTarget;
         }
 
-        public static int InvokeCount
+        public int InvokeCount
         {
             get;
             private set;
@@ -410,14 +394,14 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
         public async Task<int> GetIntAfterSleepAsync()
         {
             Thread.Sleep(100);
-            InvokeCount = Interlocked.Increment(ref Counter.CurrentCount);
+            this.InvokeCount = this.remoteTarget.RecordInvocation();
 
             return await this.remoteRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterSleepAsync));
         }
 
         public async Task<int> GetIntAfterDelayAsync()
         {
-            InvokeCount = Interlocked.Increment(ref Counter.CurrentCount);
+            this.InvokeCount = this.remoteTarget.RecordInvocation();
 
             await Task.Delay(100);
             return await this.remoteRpc.InvokeAsync<int>(nameof(RemoteTargetOne.GetIntAfterDelayAsync));
@@ -444,25 +428,25 @@ public abstract class JsonRpcRemoteTargetTests : InteropTestBase
 
     public class OriginTarget
     {
-        public static readonly AsyncAutoResetEvent CancellableOriginOperationReached = new AsyncAutoResetEvent();
+        public readonly AsyncAutoResetEvent CancellableOriginOperationReached = new();
 
-        private static readonly TaskCompletionSource<int> NotificationTcs = new TaskCompletionSource<int>();
+        private readonly TaskCompletionSource<int> notificationTcs = new();
 
-        public static Task<int> NotificationReceived => NotificationTcs.Task;
-
-        public static void GetTwo()
-        {
-            NotificationTcs.SetResult(2);
-        }
+        public Task<int> NotificationReceived => this.notificationTcs.Task;
 
         public static string OriginServerSayGoodbye(string name)
         {
             return "Goodbye " + name;
         }
 
-        public static async Task<bool> CancellableOriginOperation(CancellationToken token)
+        public void GetTwo()
         {
-            CancellableOriginOperationReached.Set();
+            this.notificationTcs.SetResult(2);
+        }
+
+        public async Task<bool> CancellableOriginOperation(CancellationToken token)
+        {
+            this.CancellableOriginOperationReached.Set();
             try
             {
                 await Task.Delay(UnexpectedTimeout, token);

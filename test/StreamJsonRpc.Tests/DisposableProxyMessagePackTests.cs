@@ -3,6 +3,7 @@
 
 using MessagePack;
 
+[Obsolete(ObsoleteFormatter)]
 public class DisposableProxyMessagePackTests : DisposableProxyTests
 {
     public DisposableProxyMessagePackTests(ITestOutputHelper logger)

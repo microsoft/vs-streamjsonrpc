@@ -18,10 +18,10 @@ public class JsonRpcWithMessageFactoryTests : TestBase
         this.server = new Server();
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
 
-        this.clientMessageFormatter = new MessageFormatterWithMessageFactory();
+        this.clientMessageFormatter = new MessageFormatterWithMessageFactory(CreateAnyJsonFormatter());
         this.clientMessageHandler = new HeaderDelimitedMessageHandler(streams.Item1, streams.Item1, this.clientMessageFormatter);
 
-        this.serverMessageFormatter = new MessageFormatterWithMessageFactory();
+        this.serverMessageFormatter = new MessageFormatterWithMessageFactory(CreateAnyJsonFormatter());
         this.serverMessageHandler = new HeaderDelimitedMessageHandler(streams.Item2, streams.Item2, this.serverMessageFormatter);
 
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
@@ -76,17 +76,15 @@ public class JsonRpcWithMessageFactoryTests : TestBase
         }
     }
 
-    internal class MessageFormatterWithMessageFactory : IJsonRpcMessageTextFormatter, IJsonRpcMessageFactory
+    internal class MessageFormatterWithMessageFactory(IJsonRpcMessageTextFormatter formatter) : IJsonRpcMessageTextFormatter, IJsonRpcMessageFactory
     {
-        private readonly IJsonRpcMessageTextFormatter formatter = new JsonMessageFormatter();
-
         public bool IsCreateErrorMessageCalled { get; private set; }
 
         public bool IsCreateRequestMessageCalled { get; private set; }
 
         public bool IsCreateResultMessageCalled { get; private set; }
 
-        public Encoding Encoding { get => this.formatter.Encoding; set => this.formatter.Encoding = value; }
+        public Encoding Encoding { get => formatter.Encoding; set => formatter.Encoding = value; }
 
         public JsonRpcError CreateErrorMessage()
         {
@@ -113,7 +111,7 @@ public class JsonRpcWithMessageFactoryTests : TestBase
 
         public JsonRpcMessage Deserialize(ReadOnlySequence<byte> contentBuffer, Encoding encoding)
         {
-            return this.formatter.Deserialize(contentBuffer, encoding);
+            return formatter.Deserialize(contentBuffer, encoding);
         }
 
         public object GetJsonText(JsonRpcMessage message)
@@ -123,7 +121,7 @@ public class JsonRpcWithMessageFactoryTests : TestBase
 
         public void Serialize(IBufferWriter<byte> bufferWriter, JsonRpcMessage message)
         {
-            this.formatter.Serialize(bufferWriter, message);
+            formatter.Serialize(bufferWriter, message);
         }
     }
 

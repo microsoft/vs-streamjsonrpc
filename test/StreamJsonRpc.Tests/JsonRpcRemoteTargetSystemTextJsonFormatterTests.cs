@@ -8,11 +8,11 @@ using StreamJsonRpc;
 public class JsonRpcRemoteTargetSystemTextJsonFormatterTests : JsonRpcRemoteTargetTests
 {
     public JsonRpcRemoteTargetSystemTextJsonFormatterTests(ITestOutputHelper logger)
-        : base(logger)
+        : base(new SystemTextJsonFormatter(), logger)
     {
     }
 
-    protected override IJsonRpcMessageFormatter CreateFormatter() => new SystemTextJsonFormatter();
+    protected override IJsonRpcMessageHandler CreateHandler(Stream sending, Stream receiving) => new HeaderDelimitedMessageHandler(sending, receiving, new SystemTextJsonFormatter());
 }
 
 */

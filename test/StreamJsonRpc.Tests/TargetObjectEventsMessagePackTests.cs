@@ -2,6 +2,7 @@
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
 
+[Obsolete(ObsoleteFormatter)]
 public class TargetObjectEventsMessagePackTests : TargetObjectEventsTests
 {
     public TargetObjectEventsMessagePackTests(ITestOutputHelper logger)

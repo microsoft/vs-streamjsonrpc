@@ -5,6 +5,7 @@ using MessagePack;
 using MessagePack.Formatters;
 using MessagePack.Resolvers;
 
+[Obsolete(ObsoleteFormatter)]
 public class JsonRpcMessagePackCSharpLengthTests(ITestOutputHelper logger) : JsonRpcMessagePackLengthTests(logger)
 {
     protected override Type FormatterExceptionType => typeof(MessagePackSerializationException);

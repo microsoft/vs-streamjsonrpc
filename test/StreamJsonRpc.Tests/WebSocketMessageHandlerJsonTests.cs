@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class WebSocketMessageHandlerJsonTests : WebSocketMessageHandlerTests
 {
     private static readonly IReadOnlyList<Encoding> Encodings = new Encoding[]

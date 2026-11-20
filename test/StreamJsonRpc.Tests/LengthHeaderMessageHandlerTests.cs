@@ -11,13 +11,13 @@ public class LengthHeaderMessageHandlerTests : TestBase
     public LengthHeaderMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.handler = new LengthHeaderMessageHandler(this.halfDuplexStream, this.halfDuplexStream, new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(this.halfDuplexStream, this.halfDuplexStream, CreateAnyFormatter());
     }
 
     [Fact]
     public void Ctor_NullPipe()
     {
-        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(null!, new JsonMessageFormatter()));
+        Assert.Throws<ArgumentNullException>(() => new LengthHeaderMessageHandler(null!, CreateAnyFormatter()));
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullWriter()
     {
-        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream().UsePipeReader(cancellationToken: TestContext.Current.CancellationToken), new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream().UsePipeReader(cancellationToken: TestContext.Current.CancellationToken), CreateAnyFormatter());
         Assert.True(this.handler.CanRead);
         Assert.False(this.handler.CanWrite);
     }
@@ -37,7 +37,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullReader()
     {
-        this.handler = new LengthHeaderMessageHandler(new MemoryStream().UsePipeWriter(cancellationToken: TestContext.Current.CancellationToken), null, new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(new MemoryStream().UsePipeWriter(cancellationToken: TestContext.Current.CancellationToken), null, CreateAnyFormatter());
         Assert.False(this.handler.CanRead);
         Assert.True(this.handler.CanWrite);
     }
@@ -45,7 +45,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullWriteStream()
     {
-        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream(), new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(null, new MemoryStream(), CreateAnyFormatter());
         Assert.True(this.handler.CanRead);
         Assert.False(this.handler.CanWrite);
     }
@@ -53,7 +53,7 @@ public class LengthHeaderMessageHandlerTests : TestBase
     [Fact]
     public void Ctor_NullReadStream()
     {
-        this.handler = new LengthHeaderMessageHandler(new MemoryStream(), null, new JsonMessageFormatter());
+        this.handler = new LengthHeaderMessageHandler(new MemoryStream(), null, CreateAnyFormatter());
         Assert.False(this.handler.CanRead);
         Assert.True(this.handler.CanWrite);
     }

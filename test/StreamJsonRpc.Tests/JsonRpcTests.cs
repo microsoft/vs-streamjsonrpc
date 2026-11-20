@@ -94,7 +94,9 @@ public abstract partial class JsonRpcTests : TestBase
         bool MethodOnDerived();
     }
 
+#pragma warning disable CS0618 // Type or member is obsolete
     protected bool IsTypeNameHandlingEnabled => this.clientMessageFormatter is JsonMessageFormatter { JsonSerializer: { TypeNameHandling: JsonNET.TypeNameHandling.Objects } };
+#pragma warning restore CS0618 // Type or member is obsolete
 
     protected abstract Type FormatterExceptionType { get; }
 
@@ -182,6 +184,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public void Attach_Null_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => JsonRpc.Attach(stream: null!));
@@ -194,11 +197,11 @@ public abstract partial class JsonRpcTests : TestBase
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         var receivingStream = streams.Item1;
         var server = new Server();
-        var rpc = JsonRpc.Attach(sendingStream: null, receivingStream: receivingStream, target: server);
+        var rpc = JsonRpc.Attach(new HeaderDelimitedMessageHandler(sendingStream: null, receivingStream: receivingStream, CreateAnyFormatter()), server);
         var disconnected = new AsyncManualResetEvent();
         rpc.Disconnected += (s, e) => disconnected.Set();
 
-        var helperHandler = new HeaderDelimitedMessageHandler(sendingStream: streams.Item2, receivingStream: null);
+        var helperHandler = new HeaderDelimitedMessageHandler(sendingStream: streams.Item2, receivingStream: null, CreateAnyFormatter());
         await helperHandler.WriteAsync(
             new JsonRpcRequest
             {
@@ -235,8 +238,9 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
     {
-        var sendingStream = new SimplexStream();
-        var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+        using var sendingStream = new SimplexStream();
+        using var handler = new HeaderDelimitedMessageHandler(sendingStream, receivingStream: null, CreateAnyFormatter());
+        using var rpc = JsonRpc.Attach(handler);
 
         // Sending notifications is fine, as it's an outbound-only communication.
         await rpc.NotifyAsync("foo");
@@ -249,6 +253,18 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
+    public async Task Attach_LegacyNullReceivingStream_CanSendNotifications()
+    {
+        using var sendingStream = new SimplexStream();
+        using var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+        await rpc.NotifyAsync("foo");
+        await sendingStream.ReadAsync(new byte[1], 0, 1, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
+    }
+
+    [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public void Ctor_Stream_Null()
     {
         Assert.Throws<ArgumentNullException>(() => new JsonRpc((Stream)null!));
@@ -258,6 +274,7 @@ public abstract partial class JsonRpcTests : TestBase
     /// Verifies tha the default message handler and formatter is as documented.
     /// </summary>
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task Ctor_Stream()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
@@ -524,8 +541,16 @@ public abstract partial class JsonRpcTests : TestBase
     {
         Assert.SkipWhen(IsRunningUnderLiveUnitTest, "Live Unit Testing");
         WeakReference weakRef = await this.InvokeWithProgressParameter_NoMemoryLeakConfirm_Helper();
-        GC.Collect();
+
+        // The helper may resume this test inline before the RPC completion stack has unwound.
+        for (int attempt = 0; attempt < 10 && weakRef.IsAlive; attempt++)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(20), this.TimeoutToken);
+            GC.Collect();
+        }
+
         Assert.False(weakRef.IsAlive);
+        GC.KeepAlive(this.clientRpc);
     }
 
     [Fact]
@@ -723,8 +748,8 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream, this.serverStream);
-        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        this.serverRpc = new JsonRpc(CreateAnyHandler(this.serverStream));
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
 
         this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = allowNonPublicInvocation });
 
@@ -775,8 +800,8 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream);
-        this.clientRpc = new JsonRpc(this.clientStream);
+        this.serverRpc = new JsonRpc(CreateAnyHandler(this.serverStream));
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
 
         this.serverRpc.AddLocalRpcTarget(this.server, new JsonRpcTargetOptions { AllowNonPublicInvocation = true });
 
@@ -792,7 +817,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
-        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc = new JsonRpc(CreateAnyHandler(this.serverStream));
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributes()));
     }
 
@@ -802,7 +827,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
-        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc = new JsonRpc(CreateAnyHandler(this.serverStream));
         Assert.Throws<ArgumentException>(() => this.serverRpc.AddLocalRpcTarget(new ServerWithConflictingAttributesViaInheritance()));
     }
 
@@ -1738,7 +1763,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_UseSingleObjectParameterDeserialization()
     {
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2)
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()))
         {
             TraceSource = new TraceSource("Loopback", SourceLevels.Verbose)
             {
@@ -1752,6 +1777,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task InvokeWithSingleObjectParameter_SendingWithProgressProperty()
     {
         int report = 0;
@@ -1780,6 +1806,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task InvokeWithArrayParameters_SendingWithProgressConcreteTypeProperty()
     {
         Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
@@ -1802,6 +1829,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task InvokeWithArrayParameters_SendingWithNullProgressConcreteTypeProperty()
     {
         Assert.SkipWhen(this.IsTypeNameHandlingEnabled, "This test substitutes types in a way that strong-typing across RPC is incompatible.");
@@ -1867,7 +1895,7 @@ public abstract partial class JsonRpcTests : TestBase
     public void AddLocalRpcTarget_ExceptionThrownWhenTargetIsNull()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         Assert.Throws<ArgumentNullException>(() => rpc.AddLocalRpcTarget(null!));
     }
 
@@ -1875,7 +1903,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_AdditionalTargetMethodFound()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         rpc.AddLocalRpcTarget(new Server());
         rpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
         rpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
@@ -1898,8 +1926,8 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_NoTargetContainsRequestedMethod()
     {
         var streams = FullDuplexStream.CreatePair();
-        var localRpc = JsonRpc.Attach(streams.Item2);
-        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var localRpc = JsonRpc.Attach(CreateAnyHandler(streams.Item2));
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item1));
         serverRpc.AddLocalRpcTarget(new Server());
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne());
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo());
@@ -1912,8 +1940,8 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_WithNamespace()
     {
         var streams = FullDuplexStream.CreatePair();
-        var localRpc = JsonRpc.Attach(streams.Item2);
-        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var localRpc = JsonRpc.Attach(CreateAnyHandler(streams.Item2));
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item1));
         serverRpc.AddLocalRpcTarget(new Server());
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetOne(), new JsonRpcTargetOptions { MethodNameTransform = n => "one." + n });
         serverRpc.AddLocalRpcTarget(new AdditionalServerTargetTwo(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.Prepend("two.") });
@@ -1933,7 +1961,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
         rpc.StartListening();
 
@@ -1949,7 +1977,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         // Now set up a server with a camel case transform and verify that it works (and that the original casing doesn't).
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { MethodNameTransform = CommonMethodNameTransforms.CamelCase });
         rpc.StartListening();
 
@@ -1967,7 +1995,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_JsonRpcParameterAttribute()
     {
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         rpc.AddLocalRpcTarget(new Server());
         rpc.StartListening();
 
@@ -1987,7 +2015,7 @@ public abstract partial class JsonRpcTests : TestBase
     public async Task AddLocalRpcTarget_ParameterNameTransformAndJsonRpcParameterAttribute()
     {
         var streams = FullDuplexStream.CreatePair();
-        var rpc = new JsonRpc(streams.Item1, streams.Item2);
+        var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter()));
         rpc.AddLocalRpcTarget(new Server(), new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
         rpc.StartListening();
 
@@ -2345,7 +2373,7 @@ public abstract partial class JsonRpcTests : TestBase
     [Fact]
     public async Task Completion_BeforeListeningAndAfterDisposal()
     {
-        var rpc = new JsonRpc(Stream.Null, Stream.Null);
+        var rpc = new JsonRpc(CreateAnyHandler(Stream.Null));
         Task completion = rpc.Completion;
         rpc.Dispose();
         await completion.WithCancellation(this.TimeoutToken);
@@ -2465,7 +2493,7 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = new JsonRpc(this.serverStream);
+        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.serverStream, CreateAnyFormatter()));
         this.serverRpc.AddLocalRpcTarget(this.server);
         this.serverRpc.StartListening();
 
@@ -2493,7 +2521,7 @@ public abstract partial class JsonRpcTests : TestBase
         this.serverRpc.AddLocalRpcTarget(this.server);
         this.serverRpc.StartListening();
 
-        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc = new JsonRpc(new HeaderDelimitedMessageHandler(this.clientStream, CreateAnyFormatter()));
         this.clientRpc.StartListening();
 
         // Failure on server side should cut the connection
@@ -2595,7 +2623,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         var streams = FullDuplexStream.CreatePair();
         var server = new Server();
-        var serverRpc = new JsonRpc(streams.Item2);
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
@@ -2608,7 +2636,7 @@ public abstract partial class JsonRpcTests : TestBase
     {
         var streams = FullDuplexStream.CreatePair();
         var server = new DisposableServer();
-        var serverRpc = new JsonRpc(streams.Item2);
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
         serverRpc.AddLocalRpcTarget(server);
         serverRpc.StartListening();
 
@@ -2628,7 +2656,7 @@ public abstract partial class JsonRpcTests : TestBase
             server.ExceptionToThrowFromDisposal = new InvalidOperationException();
         }
 
-        var serverRpc = new JsonRpc(streams.Item2);
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
@@ -2658,7 +2686,7 @@ public abstract partial class JsonRpcTests : TestBase
             server.ExceptionToThrowFromDisposal = new InvalidOperationException();
         }
 
-        var serverRpc = new JsonRpc(streams.Item2);
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
@@ -2688,7 +2716,7 @@ public abstract partial class JsonRpcTests : TestBase
             server.ExceptionToThrowFromDisposal = new InvalidOperationException();
         }
 
-        var serverRpc = new JsonRpc(streams.Item2);
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
         serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
         serverRpc.StartListening();
 
@@ -2868,6 +2896,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task ArgumentOutOfRangeException_WithStringArgValue()
     {
         this.serverRpc.AllowModificationWhileListening = true;
@@ -2952,6 +2981,7 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task DeserializeExceptionsWithUntypedData()
     {
         Exception exception = new Exception
@@ -3690,7 +3720,7 @@ public abstract partial class JsonRpcTests : TestBase
 
         WeakReference weakRef = new WeakReference(progress);
 
-        int invokeTask = await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), new { p = progress });
+        await this.clientRpc.InvokeWithParameterObjectAsync<int>(nameof(Server.MethodWithProgressParameter), NamedArgs.Create(new { p = progress }), this.TimeoutToken);
 
         await progress.WaitAsync();
 
@@ -4663,7 +4693,7 @@ public abstract partial class JsonRpcTests : TestBase
         }
     }
 
-    private class ExceptionThrowingFormatter : JsonMessageFormatter, IJsonRpcMessageFormatter
+    private class ExceptionThrowingFormatter : SystemTextJsonFormatter, IJsonRpcMessageFormatter
     {
         public bool ThrowException;
 

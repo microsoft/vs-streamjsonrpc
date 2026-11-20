@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class TargetObjectEventsJsonTests : TargetObjectEventsTests
 {
     public TargetObjectEventsJsonTests(ITestOutputHelper logger)

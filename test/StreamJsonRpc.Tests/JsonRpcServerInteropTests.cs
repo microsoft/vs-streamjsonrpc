@@ -8,12 +8,12 @@ using Newtonsoft.Json.Linq;
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *server* (i.e. the one receiving requests, and sending results)
 /// against various client messages.
 /// </summary>
-public class JsonRpcServerInteropTests : InteropTestBase
+public abstract class JsonRpcServerInteropTests : InteropTestBase
 {
     private readonly Server server;
 
-    public JsonRpcServerInteropTests(ITestOutputHelper logger)
-        : base(logger)
+    protected JsonRpcServerInteropTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
+        : base(formatter, logger)
     {
         this.server = new Server();
     }
@@ -123,34 +123,8 @@ public class JsonRpcServerInteropTests : InteropTestBase
         }
     }
 
-    [Theory, PairwiseData]
-    public async Task ServerEmitsProgressNotificationsWithNamedArguments_WithNamedArgumentsInput_WithSingleObjectParameterDeserialization(bool useSingleObjectParameterDeserialization)
-    {
-        this.InitializeServer(new JsonRpcTargetOptions { ClientRequiresNamedArguments = true, UseSingleObjectParameterDeserialization = useSingleObjectParameterDeserialization });
-
-        var methodToSend = useSingleObjectParameterDeserialization ? nameof(Server.SendProgressNotificationSingleObject) : nameof(Server.SendProgressNotificationMultipleParam);
-        this.Send(new
-        {
-            jsonrpc = "2.0",
-            method = methodToSend,
-            @params = new { firstParam = 1, progress = 5 },
-            id = "abc",
-        });
-
-        JToken notification = await this.ReceiveAsync();
-        JToken result = await this.ReceiveAsync();
-
-        // Assert that the server emitting no error, to start with.
-        Assert.Equal(JTokenType.Null, result["result"]?.Type);
-
-        this.Logger.WriteLine("Notification:\n{0}", notification);
-        Assert.Equal("$/progress", notification.Value<string>("method"));
-
-        // Assert that the progress notification came using named args in all combinations.
-        JObject paramsObject = Assert.IsType<JObject>(notification["params"]);
-        Assert.Equal(5, paramsObject.Value<int>("token"));
-        Assert.Equal(useSingleObjectParameterDeserialization ? 6 : 7, paramsObject.Value<int>("value"));
-    }
+    [Fact]
+    public Task ServerEmitsProgressNotificationsWithNamedArguments_WithNamedArgumentsInput() => this.VerifyServerEmitsProgressNotificationsWithNamedArguments_WithNamedArgumentsInput(false);
 
     [Fact]
     public async Task FlexibleUnknownArgumentPreservesNamedProgressNotifications()
@@ -193,6 +167,34 @@ public class JsonRpcServerInteropTests : InteropTestBase
         // Assert that result is specified, but that its value is null.
         Assert.NotNull(response["result"]);
         Assert.Null(response.Value<string>("result"));
+    }
+
+    protected async Task VerifyServerEmitsProgressNotificationsWithNamedArguments_WithNamedArgumentsInput(bool useSingleObjectParameterDeserialization)
+    {
+        this.InitializeServer(new JsonRpcTargetOptions { ClientRequiresNamedArguments = true, UseSingleObjectParameterDeserialization = useSingleObjectParameterDeserialization });
+
+        var methodToSend = useSingleObjectParameterDeserialization ? nameof(Server.SendProgressNotificationSingleObject) : nameof(Server.SendProgressNotificationMultipleParam);
+        this.Send(new
+        {
+            jsonrpc = "2.0",
+            method = methodToSend,
+            @params = new { firstParam = 1, progress = 5 },
+            id = "abc",
+        });
+
+        JToken notification = await this.ReceiveAsync();
+        JToken result = await this.ReceiveAsync();
+
+        // Assert that the server emitting no error, to start with.
+        Assert.Equal(JTokenType.Null, result["result"]?.Type);
+
+        this.Logger.WriteLine("Notification:\n{0}", notification);
+        Assert.Equal("$/progress", notification.Value<string>("method"));
+
+        // Assert that the progress notification came using named args in all combinations.
+        JObject paramsObject = Assert.IsType<JObject>(notification["params"]);
+        Assert.Equal(5, paramsObject.Value<int>("token"));
+        Assert.Equal(useSingleObjectParameterDeserialization ? 6 : 7, paramsObject.Value<int>("value"));
     }
 
     private JsonRpc InitializeServer(JsonRpcTargetOptions? targetOptions = null)

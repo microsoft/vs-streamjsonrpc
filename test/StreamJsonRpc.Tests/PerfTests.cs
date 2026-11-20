@@ -8,11 +8,12 @@ using Nerdbank;
 
 [Trait("Category", "SkipWhenLiveUnitTesting")] // very slow test
 [Trait("FailsOnMono", "true")]
-public class PerfTests
+public class PerfTests : TestBase
 {
     private readonly ITestOutputHelper logger;
 
     public PerfTests(ITestOutputHelper logger)
+        : base(logger)
     {
         this.logger = logger;
     }
@@ -35,8 +36,8 @@ public class PerfTests
     [MemberData(nameof(PipeTypes))]
     public async Task ChattyPerf(Stream serverStream, Stream clientStream)
     {
-        using (JsonRpc.Attach(serverStream, new Server()))
-        using (var client = JsonRpc.Attach(clientStream))
+        using (JsonRpc.Attach(CreateAnyHandler(serverStream), new Server()))
+        using (var client = JsonRpc.Attach(CreateAnyHandler(clientStream)))
         {
             // warmup
             await client.InvokeAsync("NoOp");
@@ -67,8 +68,8 @@ public class PerfTests
     public async Task BurstNotifyMessages(Stream serverStream, Stream clientStream)
     {
         var notifyServer = new NotifyServer();
-        using (var serverRpc = JsonRpc.Attach(serverStream, notifyServer))
-        using (var clientRpc = JsonRpc.Attach(clientStream))
+        using (var serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), notifyServer))
+        using (var clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream)))
         {
             serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
             clientRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
@@ -109,8 +110,8 @@ public class PerfTests
     public async Task BurstInvokeMessages(Stream serverStream, Stream clientStream)
     {
         var server = new Server();
-        using (var serverRpc = JsonRpc.Attach(serverStream, server))
-        using (var clientRpc = JsonRpc.Attach(clientStream))
+        using (var serverRpc = JsonRpc.Attach(CreateAnyHandler(serverStream), server))
+        using (var clientRpc = JsonRpc.Attach(CreateAnyHandler(clientStream)))
         {
             serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);
             clientRpc.TraceSource = new TraceSource("Server", SourceLevels.Warning);

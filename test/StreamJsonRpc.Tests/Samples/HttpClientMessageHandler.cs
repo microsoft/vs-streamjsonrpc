@@ -50,12 +50,12 @@ public class HttpClientMessageHandler : IJsonRpcMessageHandler
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpClientMessageHandler"/> class
-    /// with the default <see cref="JsonMessageFormatter"/>.
+    /// with the default <see cref="SystemTextJsonFormatter"/>.
     /// </summary>
     /// <param name="httpClient">The <see cref="HttpClient"/> to use for transmitting JSON-RPC requests.</param>
     /// <param name="requestUri">The URI to POST to where the entity will be the JSON-RPC message.</param>
     public HttpClientMessageHandler(HttpClient httpClient, Uri requestUri)
-        : this(httpClient, requestUri, new JsonMessageFormatter())
+        : this(httpClient, requestUri, new SystemTextJsonFormatter())
     {
     }
 
