@@ -46,6 +46,7 @@ public class MessageFormatterProgressTracker
     /// The callbacks to subscribe to for cleaning up resources when a request completes.
     /// </summary>
     private readonly IJsonRpcFormatterCallbacks formatterCallbacks;
+    private readonly JsonRpc jsonRpc;
 
     /// <summary>
     /// A flag indicating whether this tracker has subscribed to <see cref="formatterCallbacks"/>.
@@ -68,6 +69,8 @@ public class MessageFormatterProgressTracker
         Requires.NotNull(formatterState, nameof(formatterState));
 
         this.formatterState = formatterState;
+        this.jsonRpc = jsonRpc;
+        jsonRpc.RegisterProgressTracker(this);
 
         // The event handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections
         // that never marshal an IProgress<T> do not pay the per-response cost of raising these events.
@@ -116,6 +119,7 @@ public class MessageFormatterProgressTracker
     public long GetTokenForProgress(object value)
     {
         Requires.NotNull(value, nameof(value));
+        this.jsonRpc.DisconnectedToken.ThrowIfCancellationRequested();
 
         if (this.RequestIdBeingSerialized.IsEmpty)
         {
@@ -149,6 +153,11 @@ public class MessageFormatterProgressTracker
             this.requestProgressMap[this.RequestIdBeingSerialized] = progressInfos;
 
             this.progressMap.Add(progressToken, progressInfo);
+
+            if (this.jsonRpc.DisconnectedToken.IsCancellationRequested)
+            {
+                this.CleanUpOnDisconnect();
+            }
 
             return progressToken;
         }
@@ -203,6 +212,18 @@ public class MessageFormatterProgressTracker
 
         Type progressType = typeof(ProgressProxy<>).MakeGenericType(valueType.GenericTypeArguments[0]);
         return Activator.CreateInstance(progressType, [rpc, token, clientRequiresNamedArguments])!;
+    }
+
+    /// <summary>
+    /// Releases progress callbacks for requests that will never receive a response.
+    /// </summary>
+    internal void CleanUpOnDisconnect()
+    {
+        lock (this.progressLock)
+        {
+            this.requestProgressMap.Clear();
+            this.progressMap.Clear();
+        }
     }
 
     /// <summary>

@@ -88,6 +88,7 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
         this.formatterState = formatterState;
 
         this.jsonRpc.AddLocalRpcMethod("$/releaseMarshaledObject", ReleaseMarshaledObjectMethodInfo, this);
+        this.jsonRpc.RegisterRpcMarshaledContextTracker(this);
 
         // The cleanup handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections that
         // never marshal an object do not pay the per-response cost of raising these events.
@@ -235,6 +236,7 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
         RpcTargetMetadata declaredType,
         RpcMarshalableAttribute rpcMarshalableAttribute)
     {
+        this.jsonRpc.DisconnectedToken.ThrowIfCancellationRequested();
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
         {
             throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
@@ -315,8 +317,33 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
                 (key, value) => value.Add((handle, rpcMarshalableAttribute.CallScopedLifetime)));
         }
 
+        if (this.jsonRpc.DisconnectedToken.IsCancellationRequested)
+        {
+            this.CleanUpOnDisconnect();
+        }
+
         string? lifetime = rpcMarshalableAttribute.CallScopedLifetime ? MarshalLifetime.Call : null;
         return new MarshalToken((int)MarshalMode.MarshallingRealObject, handle, lifetime, optionalInterfacesCodes?.ToArray());
+    }
+
+    /// <summary>
+    /// Releases call-scoped handles for requests that will never receive a response.
+    /// </summary>
+    internal void CleanUpOnDisconnect()
+    {
+        ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> pending = Interlocked.Exchange(
+            ref this.outboundRequestIdMarshalMap,
+            ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty);
+        foreach (ImmutableList<(long Handle, bool CallScoped)> handles in pending.Values)
+        {
+            foreach ((long handle, bool callScoped) in handles)
+            {
+                if (callScoped)
+                {
+                    this.ReleaseMarshaledObject(handle, ownedBySender: false);
+                }
+            }
+        }
     }
 
     /// <summary>
