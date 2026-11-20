@@ -10,7 +10,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Microsoft.VisualStudio.Threading;
-using Newtonsoft.Json;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using StreamJsonRpc.Reflection;
@@ -1432,7 +1431,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <exception cref="ConnectionLostException">Thrown when the connection is terminated (by either side) while the request is being transmitted.</exception>
     /// <exception cref="Exception">
     /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
-    /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+    /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="Newtonsoft.Json.JsonSerializationException"/>.
     /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
     /// </exception>
     public Task NotifyAsync(string targetName, object? argument)
@@ -2209,7 +2208,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </exception>
     /// <exception cref="Exception">
     /// Any exception thrown by the <see cref="IJsonRpcMessageFormatter"/> (typically due to serialization failures).
-    /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="JsonSerializationException"/>.
+    /// When using <see cref="JsonMessageFormatter"/> this should be <see cref="Newtonsoft.Json.JsonSerializationException"/>.
     /// When using <see cref="MessagePackFormatter"/> this should be <see cref="T:MessagePack.MessagePackSerializationException"/>.
     /// </exception>
 #if NET
@@ -3002,9 +3001,14 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 }
                 catch (Exception exception)
                 {
+                    // Do a name check instead of a type check because we don't want to take a runtime dependency on Newtonsoft.Json or System.Text.Json
+                    // in this core method.
+                    DisconnectedReason reason = exception.GetType().Name is nameof(Newtonsoft.Json.JsonException) or nameof(System.Text.Json.JsonException)
+                            ? DisconnectedReason.ParseError
+                            : DisconnectedReason.StreamError;
                     this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
-                        exception is JsonException or System.Text.Json.JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
+                        reason,
                         exception));
                     return;
                 }
