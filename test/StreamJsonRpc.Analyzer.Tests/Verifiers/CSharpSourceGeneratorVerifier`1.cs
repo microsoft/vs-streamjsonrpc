@@ -76,6 +76,8 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
 
         public LanguageVersion LanguageVersion { get; set; } = DefaultLanguageVersion;
 
+        public bool ReportObsoleteWarnings { get; set; }
+
         public async Task RunDefaultAsync([StringSyntax("c#-test")] string testSource, LanguageVersion languageVersion = DefaultLanguageVersion, [CallerFilePath] string? testFile = null, [CallerMemberName] string testMethod = null!)
         {
             await this.RunAsync();
@@ -151,10 +153,13 @@ internal static partial class CSharpSourceGeneratorVerifier<TSourceGenerator>
         protected override CompilationOptions CreateCompilationOptions()
         {
             var compilationOptions = (CSharpCompilationOptions)base.CreateCompilationOptions();
+
+            // Generator fixtures intentionally exercise obsolete stream overloads.
             return compilationOptions
                 .WithAllowUnsafe(false)
                 .WithWarningLevel(99)
                 .WithSpecificDiagnosticOptions(compilationOptions.SpecificDiagnosticOptions
+                    .SetItem("CS0618", this.ReportObsoleteWarnings ? ReportDiagnostic.Default : ReportDiagnostic.Suppress)
                     .SetItem("CS1591", ReportDiagnostic.Suppress)
                     .SetItem("CS1701", ReportDiagnostic.Suppress)
                     .SetItem("CS1702", ReportDiagnostic.Suppress));

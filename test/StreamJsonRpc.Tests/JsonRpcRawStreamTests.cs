@@ -64,7 +64,55 @@ public class JsonRpcRawStreamTests : TestBase
         }
     }
 
+    [Theory]
+    [InlineData(0, DisconnectedReason.ParseError)]
+    [InlineData(1, DisconnectedReason.ParseError)]
+    [InlineData(2, DisconnectedReason.ParseError)]
+    [InlineData(3, DisconnectedReason.StreamError)]
+    [InlineData(4, DisconnectedReason.StreamError)]
+    public async Task ReadExceptionClassification(int exceptionKind, DisconnectedReason expectedReason)
+    {
+        Exception exception = exceptionKind switch
+        {
+            0 => new Newtonsoft.Json.JsonSerializationException("bad JSON"),
+            1 => new Newtonsoft.Json.JsonReaderException("bad JSON"),
+            2 => new DerivedSystemTextJsonException(),
+            3 => new JsonException(),
+            4 => new IOException("transport error"),
+            _ => throw new ArgumentOutOfRangeException(nameof(exceptionKind)),
+        };
+        using var rpc = new JsonRpc(new FaultingMessageHandler(exception));
+        var disconnected = new TaskCompletionSource<JsonRpcDisconnectedEventArgs>();
+        rpc.Disconnected += (_, args) => disconnected.SetResult(args);
+        rpc.StartListening();
+
+        JsonRpcDisconnectedEventArgs result = await disconnected.Task.WithCancellation(this.TimeoutToken);
+        Assert.Equal(expectedReason, result.Reason);
+        Assert.Same(exception, result.Exception);
+    }
+
     public class Server
     {
+    }
+
+    private class DerivedSystemTextJsonException : System.Text.Json.JsonException
+    {
+    }
+
+    private class JsonException : Exception
+    {
+    }
+
+    private class FaultingMessageHandler(Exception exception) : MessageHandlerBase(CreateAnyFormatter())
+    {
+        public override bool CanRead => true;
+
+        public override bool CanWrite => true;
+
+        protected override ValueTask<StreamJsonRpc.Protocol.JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken) => throw exception;
+
+        protected override ValueTask WriteCoreAsync(StreamJsonRpc.Protocol.JsonRpcMessage content, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        protected override ValueTask FlushAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -20,12 +20,14 @@ namespace StreamJsonRpc.Generated
 	file static class StreamJsonRpcInterceptor
 	{
 
+		#pragma warning disable CS0618 // The intercepted call already reports the obsolete API.
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "LkVamB+F4rAlWW45TI6uuQUBAABUZXN0MC5jcw==")]
 		internal static T AttachStreamJsonRpc_Generated_MyServiceProxy<T>(global::System.IO.Stream stream)
 		{
 		    global::StreamJsonRpc.JsonRpc jsonRpc = new(stream);
 		    return (T)(object)StartListening(CreateProxy(jsonRpc, new() { ContractInterface = typeof(T) }, disposeJsonRpcOnFailure: true));
 		}
+		#pragma warning restore CS0618
 
 		[global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "LkVamB+F4rAlWW45TI6uuUgBAABUZXN0MC5jcw==")]
 		internal static T AttachStreamJsonRpc_Generated_MyServiceProxy<T>(global::StreamJsonRpc.IJsonRpcMessageHandler handler)

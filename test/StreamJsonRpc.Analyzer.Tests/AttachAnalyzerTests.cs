@@ -16,9 +16,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     IMyService service = rpc.Attach<IMyService>();
                 }
             }
@@ -35,9 +35,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     IMyService service = {|StreamJsonRpc0003:rpc.Attach<IMyService>()|};
                 }
             }
@@ -54,9 +54,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     {|StreamJsonRpc0004:rpc.Attach<MyService>()|};
                 }
             }
@@ -73,9 +73,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     {|StreamJsonRpc0004:rpc.Attach(typeof(MyService))|};
                 }
             }
@@ -93,9 +93,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     object service = {|StreamJsonRpc0004:rpc.Attach(typeof(IMyService<>))|};
                 }
             }
@@ -113,9 +113,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo(System.IO.Stream s)
+                void Foo(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     object service = rpc.Attach(typeof(IMyService<int>));
                 }
             }
@@ -133,9 +133,9 @@ public class AttachAnalyzerTests
 
             class Test
             {
-                void Foo<T>(System.IO.Stream s)
+                void Foo<T>(IJsonRpcMessageHandler handler)
                 {
-                    JsonRpc rpc = new(s);
+                    JsonRpc rpc = new(handler);
                     object service = rpc.Attach(typeof(IMyService<T>));
                 }
             }

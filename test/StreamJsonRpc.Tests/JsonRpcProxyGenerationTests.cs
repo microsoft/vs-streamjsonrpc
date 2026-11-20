@@ -1030,7 +1030,9 @@ public abstract partial class JsonRpcProxyGenerationTests : TestBase
         var server = new Server();
         var serverRpc = JsonRpc.Attach(CreateAnyHandler(streams.Item2), server);
 
-        var client = new JsonRpc(CreateAnyHandler(streams.Item1));
+        // The dynamic proxy emits public fields for untransformed named arguments.
+        var formatter = new SystemTextJsonFormatter { JsonSerializerOptions = new() { IncludeFields = true } };
+        var client = new JsonRpc(new LengthHeaderMessageHandler(streams.Item1, streams.Item1, formatter));
         var clientRpc = client.Attach<IServer>(new JsonRpcProxyOptions(this.DefaultProxyOptions)
         {
             ServerRequiresNamedArguments = true,

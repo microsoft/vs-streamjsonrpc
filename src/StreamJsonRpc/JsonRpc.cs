@@ -862,11 +862,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonRpc"/> class that uses
-    /// a given <see cref="IJsonRpcMessageHandler"/> to transmit and receive messages, and immediately starts listening.
+    /// a given <see cref="IJsonRpcMessageHandler"/> to transmit and receive messages, and starts listening if the handler can read.
     /// </summary>
     /// <param name="handler">The message handler to use for transmitting and receiving messages.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
-    /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+    /// <returns>The initialized <see cref="JsonRpc"/> object.</returns>
     [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
     [RequiresUnreferencedCode(RuntimeReasons.UntypedRpcTarget)]
     public static JsonRpc Attach(IJsonRpcMessageHandler handler, object? target = null)
@@ -875,7 +875,11 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         JsonRpc rpc = new(handler, target);
         try
         {
-            rpc.StartListening();
+            if (handler.CanRead)
+            {
+                rpc.StartListening();
+            }
+
             return rpc;
         }
         catch
@@ -3001,11 +3005,17 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 }
                 catch (Exception exception)
                 {
-                    // Do a name check instead of a type check because we don't want to take a runtime dependency on Newtonsoft.Json or System.Text.Json
-                    // in this core method.
-                    DisconnectedReason reason = exception.GetType().Name is nameof(Newtonsoft.Json.JsonException) or nameof(System.Text.Json.JsonException)
-                            ? DisconnectedReason.ParseError
-                            : DisconnectedReason.StreamError;
+                    // Avoid runtime dependencies on either JSON library while recognizing derived exception types.
+                    DisconnectedReason reason = DisconnectedReason.StreamError;
+                    for (Type? type = exception.GetType(); type is not null; type = type.BaseType)
+                    {
+                        if (type.FullName is "Newtonsoft.Json.JsonException" or "System.Text.Json.JsonException")
+                        {
+                            reason = DisconnectedReason.ParseError;
+                            break;
+                        }
+                    }
+
                     this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
                         reason,

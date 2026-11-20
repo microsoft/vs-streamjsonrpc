@@ -236,11 +236,11 @@ public abstract partial class JsonRpcTests : TestBase
     }
 
     [Fact]
-    [Obsolete(ObsoleteFormatter)]
     public async Task Attach_NullReceivingStream_CanOnlySendNotifications()
     {
         using var sendingStream = new SimplexStream();
-        using var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+        using var handler = new HeaderDelimitedMessageHandler(sendingStream, receivingStream: null, CreateAnyFormatter());
+        using var rpc = JsonRpc.Attach(handler);
 
         // Sending notifications is fine, as it's an outbound-only communication.
         await rpc.NotifyAsync("foo");
@@ -249,6 +249,17 @@ public abstract partial class JsonRpcTests : TestBase
         await sendingStream.ReadAsync(new byte[1], 0, 1, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
 
         // Sending requests should not be allowed, since it requires waiting for a response.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
+    }
+
+    [Fact]
+    [Obsolete(ObsoleteFormatter)]
+    public async Task Attach_LegacyNullReceivingStream_CanSendNotifications()
+    {
+        using var sendingStream = new SimplexStream();
+        using var rpc = JsonRpc.Attach(sendingStream: sendingStream, receivingStream: null);
+        await rpc.NotifyAsync("foo");
+        await sendingStream.ReadAsync(new byte[1], 0, 1, TestContext.Current.CancellationToken).WithCancellation(this.TimeoutToken);
         await Assert.ThrowsAsync<InvalidOperationException>(() => rpc.InvokeAsync("foo"));
     }
 
