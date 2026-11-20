@@ -99,6 +99,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Tracks RPC target objects.
     /// </summary>
     private readonly RpcTargetInfo rpcTargetInfo;
+    private MessageFormatterEnumerableTracker? enumerableTracker;
 
     private ExceptionSerializationHelpers.IExceptionTypeLoader? trimUnsafeTypeLoader;
 
@@ -1585,6 +1586,15 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Registers the formatter's enumerable tracker for disposal when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterEnumerableTracker(MessageFormatterEnumerableTracker tracker)
+    {
+        this.enumerableTracker = tracker;
+    }
+
+    /// <summary>
     /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
     /// <param name="exposingMembersOn">
@@ -2904,6 +2914,18 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         try
         {
             await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            if (this.enumerableTracker is not null)
+            {
+                await this.enumerableTracker.DisposeAsync().ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {

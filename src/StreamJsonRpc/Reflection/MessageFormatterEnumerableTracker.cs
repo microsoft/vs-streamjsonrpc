@@ -20,7 +20,7 @@ namespace StreamJsonRpc.Reflection;
 /// <summary>
 /// A helper class that <see cref="IJsonRpcMessageFormatter"/> implementations may use to support <see cref="IAsyncEnumerable{T}"/> return values from RPC methods.
 /// </summary>
-public class MessageFormatterEnumerableTracker
+public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
 {
     /// <summary>
     /// The name of the string property that carries the handle for the enumerable.
@@ -90,6 +90,7 @@ public class MessageFormatterEnumerableTracker
         this.rpcTracker = rpcTracker;
         jsonRpc.AddLocalRpcMethod(NextMethodName, OnNextAsyncMethodInfo, this);
         jsonRpc.AddLocalRpcMethod(DisposeMethodName, OnDisposeAsyncMethodInfo, this);
+        jsonRpc.RegisterEnumerableTracker(this);
         this.formatterState = formatterState;
 
         // The cleanup handlers are subscribed lazily (see EnsureCleanupSubscribed) so that connections that
@@ -125,6 +126,7 @@ public class MessageFormatterEnumerableTracker
     public long GetToken<T>(IAsyncEnumerable<T> enumerable)
     {
         Requires.NotNull(enumerable, nameof(enumerable));
+        this.jsonRpc.DisconnectedToken.ThrowIfCancellationRequested();
         if (this.formatterState.SerializingMessageWithId.IsEmpty)
         {
             throw new NotSupportedException(Resources.MarshaledObjectInNotificationError);
@@ -152,7 +154,29 @@ public class MessageFormatterEnumerableTracker
             this.generatorsByToken.Add(handle, new GeneratingEnumeratorTracker<T>(this, handle, enumerable, settings: enumerable.GetJsonRpcSettings()));
         }
 
+        if (this.jsonRpc.DisconnectedToken.IsCancellationRequested)
+        {
+            this.OnDisposeAsync(handle).AsTask().Forget();
+        }
+
         return handle;
+    }
+
+    /// <summary>
+    /// Disposes all enumerators still owned by this connection.
+    /// </summary>
+    /// <returns>A task that completes when all enumerators have been disposed.</returns>
+    public async ValueTask DisposeAsync()
+    {
+        IGeneratingEnumeratorTracker[] generators;
+        lock (this.syncObject)
+        {
+            generators = this.generatorsByToken.Values.ToArray();
+            this.generatorsByToken.Clear();
+            this.generatorTokensByRequestId.Clear();
+        }
+
+        await Task.WhenAll(generators.Select(generator => generator.DisposeAsync().AsTask())).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -268,7 +292,9 @@ public class MessageFormatterEnumerableTracker
     {
         private readonly IAsyncEnumerator<T> enumerator;
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly SemaphoreSlim enumerationSemaphore = new SemaphoreSlim(1, 1);
         private readonly BufferBlock<T>? readAheadElements;
+        private readonly Task? readAheadTask;
 
         private readonly MessageFormatterEnumerableTracker tracker;
 
@@ -284,7 +310,7 @@ public class MessageFormatterEnumerableTracker
             if (settings.MaxReadAhead > 0)
             {
                 this.readAheadElements = new BufferBlock<T>(new DataflowBlockOptions { BoundedCapacity = settings.MaxReadAhead, EnsureOrdered = true });
-                this.ReadAheadAsync().Forget(); // exceptions fault the buffer block
+                this.readAheadTask = this.ReadAheadAsync(); // exceptions fault the buffer block
             }
         }
 
@@ -336,13 +362,21 @@ public class MessageFormatterEnumerableTracker
                     {
                         for (int i = 0; i < this.Settings.MinBatchSize; i++)
                         {
-                            if (!await this.enumerator.MoveNextAsync().ConfigureAwait(false))
+                            await this.enumerationSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            try
                             {
-                                finished = true;
-                                break;
-                            }
+                                if (!await this.enumerator.MoveNextAsync().ConfigureAwait(false))
+                                {
+                                    finished = true;
+                                    break;
+                                }
 
-                            results.Add(this.enumerator.Current);
+                                results.Add(this.enumerator.Current);
+                            }
+                            finally
+                            {
+                                this.enumerationSemaphore.Release();
+                            }
                         }
                     }
 
@@ -376,7 +410,20 @@ public class MessageFormatterEnumerableTracker
             this.cancellationTokenSource.Cancel();
 #endif
             this.readAheadElements?.Complete();
-            await this.enumerator.DisposeAsync().ConfigureAwait(false);
+            if (this.readAheadTask is not null)
+            {
+                await this.readAheadTask.ConfigureAwait(false);
+            }
+
+            await this.enumerationSemaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await this.enumerator.DisposeAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                this.enumerationSemaphore.Release();
+            }
         }
 
         private async Task ReadAheadAsync()

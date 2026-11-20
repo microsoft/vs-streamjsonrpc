@@ -62,6 +62,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         IAsyncEnumerable<int> GetNumbersNoCancellationAsync();
 
+        IAsyncEnumerable<int> GetUnconsumedNumbersAsync();
+
         IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync(CancellationToken cancellationToken);
 
         IAsyncEnumerable<int> WaitTillCanceledBeforeFirstItemAsync(CancellationToken cancellationToken);
@@ -466,6 +468,49 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
         await this.server.MethodExited.WaitAsync(this.TimeoutToken);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ClientDisconnectDisposesServerEnumerator(bool readAhead)
+    {
+        IAsyncEnumerable<int> enumerable = readAhead
+            ? this.clientProxy.Value.GetNumbersWithReadAheadAsync(this.TimeoutToken)
+            : this.clientProxy.Value.GetNumbersAsync(this.TimeoutToken);
+
+        IAsyncEnumerator<int> enumerator = enumerable.GetAsyncEnumerator(this.TimeoutToken);
+        Assert.True(await enumerator.MoveNextAsync());
+
+        this.clientRpc.Dispose();
+        await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        await this.server.MethodExited.WaitAsync(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task ClientDisconnectDisposesUnconsumedServerEnumerator()
+    {
+        _ = await this.clientRpc.InvokeWithCancellationAsync<IAsyncEnumerable<int>>(nameof(Server.GetUnconsumedNumbersAsync), cancellationToken: this.TimeoutToken);
+        this.clientRpc.Dispose();
+
+        await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        await this.server.EnumeratorDisposed.WaitAsync(this.TimeoutToken);
+    }
+
+    [Fact]
+    public async Task ClientDisconnectCancelsPendingServerMoveNext()
+    {
+        IAsyncEnumerable<int> enumerable = this.clientProxy.Value.WaitForCancellationAfterYieldAsync(this.TimeoutToken);
+        IAsyncEnumerator<int> enumerator = enumerable.GetAsyncEnumerator(this.TimeoutToken);
+        Assert.True(await enumerator.MoveNextAsync());
+
+        ValueTask<bool> pendingMoveNext = enumerator.MoveNextAsync();
+        Assert.False(pendingMoveNext.IsCompleted);
+        this.clientRpc.Dispose();
+
+        await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        await this.server.MethodExited.WaitAsync(this.TimeoutToken);
+        await Assert.ThrowsAsync<ConnectionLostException>(async () => await pendingMoveNext);
+    }
+
     [Fact]
     public async Task NotifyAsync_ThrowsIfAsyncEnumerableSent()
     {
@@ -687,6 +732,8 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public AsyncManualResetEvent MethodExited { get; } = new AsyncManualResetEvent();
 
+        public AsyncManualResetEvent EnumeratorDisposed { get; } = new AsyncManualResetEvent();
+
         public AsyncManualResetEvent MethodCancellationObserved { get; } = new AsyncManualResetEvent();
 
         public Task? ArgEnumeratorAfterReturn { get; private set; }
@@ -717,12 +764,21 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
 
         public IAsyncEnumerable<int> GetNumbersNoCancellationAsync() => this.GetNumbersAsync(CancellationToken.None);
 
+        public IAsyncEnumerable<int> GetUnconsumedNumbersAsync() => new UnconsumedEnumerable(this.EnumeratorDisposed);
+
         public async IAsyncEnumerable<int> WaitForCancellationAfterYieldAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            using (cancellationToken.Register(this.MethodCancellationObserved.Set))
+            try
             {
-                yield return 1;
-                await Task.Delay(Timeout.Infinite, cancellationToken);
+                using (cancellationToken.Register(this.MethodCancellationObserved.Set))
+                {
+                    yield return 1;
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                }
+            }
+            finally
+            {
+                this.MethodExited.Set();
             }
         }
 
@@ -851,6 +907,25 @@ public abstract partial class AsyncEnumerableTests : TestBase, IAsyncLifetime
             if (endWithException)
             {
                 throw new InvalidOperationException(FailByDesignExceptionMessage);
+            }
+        }
+
+        private sealed class UnconsumedEnumerable : IAsyncEnumerable<int>, IAsyncEnumerator<int>
+        {
+            private readonly AsyncManualResetEvent disposed;
+
+            internal UnconsumedEnumerable(AsyncManualResetEvent disposed) => this.disposed = disposed;
+
+            public int Current => throw new InvalidOperationException();
+
+            public IAsyncEnumerator<int> GetAsyncEnumerator(CancellationToken cancellationToken = default) => this;
+
+            public ValueTask<bool> MoveNextAsync() => throw new InvalidOperationException("The enumerable should not be consumed.");
+
+            public ValueTask DisposeAsync()
+            {
+                this.disposed.Set();
+                return default;
             }
         }
     }
