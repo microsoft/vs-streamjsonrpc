@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
+using Microsoft.VisualStudio.Threading;
 using StreamJsonRpc.Reflection;
 
 public class HeaderDelimitedMessageHandlerTests : TestBase
@@ -117,6 +118,45 @@ CRLF +
     }
 
     [Fact]
+    public async Task DisposeReader_WaitsForDeserializationCompleteToAdvance()
+    {
+        string body = "{\"jsonrpc\":\"2.0\",\"method\":\"test\"}";
+        byte[] content = Encoding.UTF8.GetBytes($"Content-Length: {Encoding.UTF8.GetByteCount(body)}{CRLF}{CRLF}{body}");
+        using var stream = new MemoryStream(content);
+        using var reader = new GatedPipeReader(PipeReader.Create(stream));
+        var handler = new HeaderDelimitedMessageHandler(null, reader, new SystemTextJsonFormatter());
+        JsonRpcMessage message = (await handler.ReadAsync(this.TimeoutToken))!;
+        Assert.IsAssignableFrom<IJsonRpcMessageBufferManager>(message);
+
+        reader.PauseNextAdvance();
+        Task deserialization = Task.Run(() => ((IJsonRpcMessageBufferManager)handler).DeserializationComplete(message), TestContext.Current.CancellationToken);
+        Task? disposal = null;
+        try
+        {
+            reader.AdvanceEntered.Wait(this.TimeoutToken);
+            var disposalStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            disposal = Task.Run(
+                async () =>
+                {
+                    disposalStarted.SetResult(true);
+                    await handler.DisposeAsync();
+                },
+                TestContext.Current.CancellationToken);
+            await disposalStarted.Task.WithCancellation(this.TimeoutToken);
+            await Task.Delay(ExpectedTimeout, this.TimeoutToken);
+            Assert.False(reader.CompleteCalled.IsSet);
+            Assert.False(disposal.IsCompleted);
+        }
+        finally
+        {
+            reader.AllowAdvance.Set();
+        }
+
+        await Task.WhenAll(deserialization, disposal!).WithCancellation(this.TimeoutToken);
+        Assert.True(reader.CompleteCalled.IsSet);
+    }
+
+    [Fact]
     public void TooLargeHeader()
     {
         Assert.Throws<ArgumentException>(() => this.handler.SubType = new string('a', 980));
@@ -138,5 +178,53 @@ CRLF +
         {
             throw new NotImplementedException();
         }
+    }
+
+    private sealed class GatedPipeReader : PipeReader, IDisposable
+    {
+        private readonly PipeReader inner;
+        private int pauseNextAdvance;
+
+        internal GatedPipeReader(PipeReader inner) => this.inner = inner;
+
+        internal ManualResetEventSlim AdvanceEntered { get; } = new();
+
+        internal ManualResetEventSlim AllowAdvance { get; } = new();
+
+        internal ManualResetEventSlim CompleteCalled { get; } = new();
+
+        public override void AdvanceTo(SequencePosition consumed) => this.AdvanceTo(consumed, consumed);
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+        {
+            if (Interlocked.Exchange(ref this.pauseNextAdvance, 0) != 0)
+            {
+                this.AdvanceEntered.Set();
+                this.AllowAdvance.Wait(UnexpectedTimeout);
+            }
+
+            this.inner.AdvanceTo(consumed, examined);
+        }
+
+        public override void CancelPendingRead() => this.inner.CancelPendingRead();
+
+        public override void Complete(Exception? exception = null)
+        {
+            this.CompleteCalled.Set();
+            this.inner.Complete(exception);
+        }
+
+        public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default) => this.inner.ReadAsync(cancellationToken);
+
+        public override bool TryRead(out ReadResult result) => this.inner.TryRead(out result);
+
+        public void Dispose()
+        {
+            this.AdvanceEntered.Dispose();
+            this.AllowAdvance.Dispose();
+            this.CompleteCalled.Dispose();
+        }
+
+        internal void PauseNextAdvance() => Interlocked.Exchange(ref this.pauseNextAdvance, 1);
     }
 }
