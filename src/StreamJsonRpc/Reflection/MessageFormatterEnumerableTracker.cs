@@ -412,7 +412,9 @@ public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
             this.readAheadElements?.Complete();
             if (this.readAheadTask is not null)
             {
+#pragma warning disable VSTHRD003 // The read-ahead task never captures a synchronization context.
                 await this.readAheadTask.ConfigureAwait(false);
+#pragma warning restore VSTHRD003
             }
 
             await this.enumerationSemaphore.WaitAsync().ConfigureAwait(false);

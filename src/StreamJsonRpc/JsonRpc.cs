@@ -100,6 +100,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// </summary>
     private readonly RpcTargetInfo rpcTargetInfo;
     private MessageFormatterEnumerableTracker? enumerableTracker;
+    private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
+    private MessageFormatterProgressTracker? progressTracker;
 
     private ExceptionSerializationHelpers.IExceptionTypeLoader? trimUnsafeTypeLoader;
 
@@ -1595,6 +1597,18 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Registers the formatter's marshaled-object tracker for cleanup when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterRpcMarshaledContextTracker(MessageFormatterRpcMarshaledContextTracker tracker) => this.rpcMarshaledContextTracker = tracker;
+
+    /// <summary>
+    /// Registers the formatter's progress tracker for cleanup when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterProgressTracker(MessageFormatterProgressTracker tracker) => this.progressTracker = tracker;
+
+    /// <summary>
     /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
     /// <param name="exposingMembersOn">
@@ -2914,6 +2928,24 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
         try
         {
             await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            this.rpcMarshaledContextTracker?.CleanUpOnDisconnect();
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            this.progressTracker?.CleanUpOnDisconnect();
         }
         catch (Exception ex)
         {

@@ -288,6 +288,8 @@ public abstract partial class MarshalableProxyTests : TestBase
 
         Task CallScopedMarshalableAsync(IMarshalableWithCallScopedLifetime marshalable);
 
+        Task WaitForDisconnectAsync(IMarshalableWithCallScopedLifetime marshalable, IProgress<int> progress, CancellationToken cancellationToken);
+
         Task<IMarshalableWithCallScopedLifetime> ReturnCallScopedObjectAsync();
 
         IAsyncEnumerable<int> CallScopedMarshalableReturnsAsyncEnumerable(IMarshalableWithCallScopedLifetime marshalable);
@@ -1040,6 +1042,30 @@ public abstract partial class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    [Trait("GC", "")]
+    public async Task DisconnectReleasesPendingCallScopedMarshalableAndProgress()
+    {
+        (WeakReference marshalable, WeakReference progress) = await InvokeAndDisconnectAsync();
+        await this.AssertWeakReferenceGetsCollectedAsync(marshalable);
+        await this.AssertWeakReferenceGetsCollectedAsync(progress);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        async Task<(WeakReference Marshalable, WeakReference Progress)> InvokeAndDisconnectAsync()
+        {
+            MarshalableAndSerializable marshalable = new();
+            Progress<int> progress = new(_ => { });
+            Task request = this.client.WaitForDisconnectAsync(marshalable, progress, this.TimeoutToken);
+            await this.server.DisconnectWaitEntered.WaitAsync(this.TimeoutToken);
+
+            this.clientRpc.Dispose();
+            await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+            await Assert.ThrowsAsync<ConnectionLostException>(() => request);
+            Assert.False(marshalable.IsDisposed);
+            return (new WeakReference(marshalable), new WeakReference(progress));
+        }
+    }
+
+    [Fact]
     public async Task RpcMarshalable_CallScopedLifetime_ObjectReturned()
     {
         var ex = await Assert.ThrowsAsync<RemoteSerializationException>(this.client.ReturnCallScopedObjectAsync);
@@ -1059,6 +1085,8 @@ public abstract partial class MarshalableProxyTests : TestBase
 
     public class Server : IServer
     {
+        internal AsyncManualResetEvent DisconnectWaitEntered { get; } = new();
+
         internal AsyncAutoResetEvent AllowContinuation { get; } = new();
 
         internal AsyncManualResetEvent ReturnedMarshalableDisposed { get; } = new AsyncManualResetEvent();
@@ -1070,6 +1098,12 @@ public abstract partial class MarshalableProxyTests : TestBase
         internal IMarshalableWithOptionalInterfaces? ReturnedMarshalableWithOptionalInterfaces { get; set; }
 
         internal Task? ContinuationResult { get; private set; }
+
+        public async Task WaitForDisconnectAsync(IMarshalableWithCallScopedLifetime marshalable, IProgress<int> progress, CancellationToken cancellationToken)
+        {
+            this.DisconnectWaitEntered.Set();
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
 
         public Task<IMarshalable?> GetMarshalableAsync(bool returnNull)
         {

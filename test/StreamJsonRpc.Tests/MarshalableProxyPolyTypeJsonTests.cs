@@ -47,6 +47,7 @@ public partial class MarshalableProxyPolyTypeJsonTests : MarshalableProxyTests
     [JsonSerializable(typeof(JsonElement))]
     [JsonSerializable(typeof(TypeThrowsWhenSerialized))]
     [JsonSerializable(typeof(IAsyncEnumerable<int>))]
+    [JsonSerializable(typeof(IProgress<int>))]
     [JsonSerializable(typeof(IMarshalable))]
     [JsonSerializable(typeof(IMarshalableWithCallScopedLifetime))]
     [JsonSerializable(typeof(IMarshalableWithOptionalInterfaces))]
