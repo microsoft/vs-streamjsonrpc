@@ -65,6 +65,12 @@ public abstract class TestBase : IDisposable
     protected static IJsonRpcMessageFormatter CreateAnyFormatter() => new SystemTextJsonFormatter();
 
     /// <summary>
+    /// Creates a new JSON formatter where the test doesn't care which implementation is used.
+    /// </summary>
+    /// <returns>The newly instantiated JSON text formatter.</returns>
+    protected static IJsonRpcMessageTextFormatter CreateAnyJsonFormatter() => new SystemTextJsonFormatter();
+
+    /// <summary>
     /// Creates a new message handler where the test doesn't care which implementation is used.
     /// </summary>
     /// <param name="stream">The stream to use for the message handler.</param>

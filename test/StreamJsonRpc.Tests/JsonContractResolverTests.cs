@@ -8,6 +8,7 @@ using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
+[Obsolete(ObsoleteFormatter)]
 public partial class JsonContractResolverTest : TestBase
 {
     private static readonly IContractResolver SharedContractResolver = new CamelCasePropertyNamesContractResolver();

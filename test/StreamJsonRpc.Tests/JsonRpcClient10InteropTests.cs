@@ -7,17 +7,19 @@ using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 1.0 *client* (i.e. the one sending requests, and receiving results)
-/// against various server messages.
+/// against various server messages. JSON-RPC 1.0 is supported only by JsonMessageFormatter.
 /// </summary>
-public class JsonRpcClient10InteropTests : InteropTestBase
+public abstract class JsonRpcClient10InteropTests : InteropTestBase
 {
     private readonly JsonRpc clientRpc;
     private readonly NotificationTarget notificationTarget = new();
 
-    public JsonRpcClient10InteropTests(ITestOutputHelper logger)
-        : base(logger)
+#pragma warning disable CS0618 // JSON-RPC 1.0 is supported only by JsonMessageFormatter.
+    protected JsonRpcClient10InteropTests(JsonMessageFormatter formatter, ITestOutputHelper logger)
+        : base(formatter, logger)
     {
-        this.messageHandler.Formatter.ProtocolVersion = new Version(1, 0);
+        formatter.ProtocolVersion = new Version(1, 0);
+#pragma warning restore CS0618
         this.clientRpc = new JsonRpc(this.messageHandler);
         this.clientRpc.AddLocalRpcTarget(this.notificationTarget);
         this.clientRpc.StartListening();

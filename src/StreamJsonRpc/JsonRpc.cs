@@ -868,6 +868,8 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// <param name="handler">The message handler to use for transmitting and receiving messages.</param>
     /// <param name="target">An optional target object to invoke when incoming RPC requests arrive.</param>
     /// <returns>The initialized and listening <see cref="JsonRpc"/> object.</returns>
+    [RequiresDynamicCode(RuntimeReasons.CloseGenerics)]
+    [RequiresUnreferencedCode(RuntimeReasons.UntypedRpcTarget)]
     public static JsonRpc Attach(IJsonRpcMessageHandler handler, object? target = null)
     {
         Requires.NotNull(handler);
@@ -3002,7 +3004,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
                 {
                     this.OnJsonRpcDisconnected(new JsonRpcDisconnectedEventArgs(
                         string.Format(CultureInfo.CurrentCulture, Resources.ReadingJsonRpcStreamFailed, exception.GetType().Name, exception.Message),
-                        exception is JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
+                        exception is JsonException or System.Text.Json.JsonException ? DisconnectedReason.ParseError : DisconnectedReason.StreamError,
                         exception));
                     return;
                 }

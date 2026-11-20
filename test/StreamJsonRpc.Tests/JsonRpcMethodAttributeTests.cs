@@ -26,8 +26,8 @@ public class JsonRpcMethodAttributeTests : TestBase
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
 
-        this.serverRpc = JsonRpc.Attach(this.serverStream, this.server);
-        this.clientRpc = JsonRpc.Attach(this.clientStream);
+        this.serverRpc = JsonRpc.Attach(CreateAnyHandler(this.serverStream), this.server);
+        this.clientRpc = JsonRpc.Attach(CreateAnyHandler(this.clientStream));
     }
 
     [Fact]
@@ -284,7 +284,7 @@ public class JsonRpcMethodAttributeTests : TestBase
         var serverStream = streams.Item1;
         var clientStream = streams.Item2;
 
-        var rpc = JsonRpc.Attach(serverStream, clientStream, invalidServer);
+        var rpc = JsonRpc.Attach(new HeaderDelimitedMessageHandler(serverStream, clientStream, CreateAnyFormatter()), invalidServer);
 
         string result = await rpc.InvokeAsync<string>("FirstAsync", "hi");
         Assert.Equal("First hi", result);

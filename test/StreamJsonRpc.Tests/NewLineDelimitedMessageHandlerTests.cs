@@ -3,13 +3,13 @@
 
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Text;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 using Newtonsoft.Json.Linq;
 
-public class NewLineDelimitedMessageHandlerTests : TestBase
+public abstract class NewLineDelimitedMessageHandlerTests : TestBase
 {
+    private readonly IJsonRpcMessageTextFormatter formatter;
     private readonly IReadOnlyList<JsonRpcRequest> mockMessages = new JsonRpcRequest[]
     {
         new JsonRpcRequest { RequestId = new RequestId(1), Method = "a" },
@@ -17,30 +17,24 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         new JsonRpcRequest { RequestId = new RequestId(3), Method = "c" },
     };
 
-    public NewLineDelimitedMessageHandlerTests(ITestOutputHelper logger)
+    protected NewLineDelimitedMessageHandlerTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
         : base(logger)
     {
+        this.formatter = formatter;
     }
 
     [Fact]
     public void Ctor_Nulls()
     {
-        Assert.Throws<ArgumentNullException>("pipe", () => new NewLineDelimitedMessageHandler(null!, new JsonMessageFormatter()));
+        Assert.Throws<ArgumentNullException>("pipe", () => new NewLineDelimitedMessageHandler(null!, this.formatter));
         Assert.Throws<ArgumentNullException>("formatter", () => new NewLineDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, null!));
         Assert.Throws<ArgumentNullException>("formatter", () => new NewLineDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, null!));
-    }
-
-    [Fact]
-    public void UTF16_Formatter_NotSupported()
-    {
-        // Because the handler looks for UTF-8 encoded \n characters, it doesn't support anything else.
-        Assert.Throws<NotSupportedException>(() => new NewLineDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, new JsonMessageFormatter(Encoding.Unicode)));
     }
 
     [Fact]
     public void NewLine()
     {
-        var handler = new NewLineDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, new JsonMessageFormatter());
+        var handler = new NewLineDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, this.formatter);
 
         // Assert default value.
         Assert.Equal(NewLineDelimitedMessageHandler.NewLineStyle.CrLf, handler.NewLine);
@@ -49,14 +43,14 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         Assert.Equal(NewLineDelimitedMessageHandler.NewLineStyle.Lf, handler.NewLine);
     }
 
-    [Theory, PairwiseData]
-    public async Task Reading_MixedLineEndings(bool useSystemTextJson)
+    [Fact]
+    public async Task Reading_MixedLineEndings()
     {
         var pipe = new Pipe();
-        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, useSystemTextJson ? new SystemTextJsonFormatter() : new JsonMessageFormatter());
+        var testFormatter = this.formatter;
+        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, testFormatter);
 
         // Send messages with mixed line endings to the handler..
-        var testFormatter = new JsonMessageFormatter();
         testFormatter.Serialize(pipe.Writer, this.mockMessages[0]);
         pipe.Writer.Write(testFormatter.Encoding.GetBytes("\n"));
         testFormatter.Serialize(pipe.Writer, this.mockMessages[1]);
@@ -83,8 +77,8 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
     public async Task Reading_IncompleteLine()
     {
         var pipe = new Pipe();
-        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, new JsonMessageFormatter());
-        var testFormatter = new JsonMessageFormatter();
+        var testFormatter = this.formatter;
+        var handler = new NewLineDelimitedMessageHandler(null, pipe.Reader, testFormatter);
 
         // Send just the message, but no newline yet.
         testFormatter.Serialize(pipe.Writer, this.mockMessages[0]);
@@ -101,11 +95,12 @@ public class NewLineDelimitedMessageHandlerTests : TestBase
         Assert.True(msg is JsonRpcRequest);
     }
 
-    [Theory, PairwiseData]
-    public async Task Writing_MixedLineEndings(bool useSystemTextJson)
+    [Fact]
+    public async Task Writing_MixedLineEndings()
     {
         var pipe = new Pipe();
-        var handler = new NewLineDelimitedMessageHandler(pipe.Writer, null, useSystemTextJson ? new SystemTextJsonFormatter() : new JsonMessageFormatter());
+        var formatter = this.formatter;
+        var handler = new NewLineDelimitedMessageHandler(pipe.Writer, null, formatter);
 
         // Use the handler to write out a couple messages with mixed line endings.
         await handler.WriteAsync(this.mockMessages[0], this.TimeoutToken); // CRLF

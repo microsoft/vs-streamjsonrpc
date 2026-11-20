@@ -10,7 +10,8 @@ namespace StreamJsonRpc0003.Violation
 
         void Foo(Stream s)
         {
-            IMyService proxy = JsonRpc.Attach<IMyService>(s); // StreamJsonRpc0003 diagnostic here
+            HeaderDelimitedMessageHandler handler = new(s, new SystemTextJsonFormatter());
+            IMyService proxy = JsonRpc.Attach<IMyService>(handler); // StreamJsonRpc0003 diagnostic here
             using (proxy as IDisposable)
             {
             }
@@ -32,7 +33,8 @@ namespace StreamJsonRpc0003.Fix
 
         void Foo(Stream s)
         {
-            IMyService proxy = JsonRpc.Attach<IMyService>(s);
+            HeaderDelimitedMessageHandler handler = new(s, new SystemTextJsonFormatter());
+            IMyService proxy = JsonRpc.Attach<IMyService>(handler);
             using (proxy as IDisposable)
             {
             }

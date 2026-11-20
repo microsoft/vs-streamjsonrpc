@@ -4,6 +4,7 @@
 using System.Text;
 using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class CustomCancellationStrategyJsonTypeHandlingTests : CustomCancellationStrategyTests
 {
     public CustomCancellationStrategyJsonTypeHandlingTests(ITestOutputHelper logger)

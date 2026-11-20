@@ -26,8 +26,10 @@ public partial class NotifyBenchmarks
         {
             return this.Formatter switch
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 "JSON" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
                 "MessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new MessagePackFormatter()),
+#pragma warning restore CS0618 // Type or member is obsolete
                 "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = GeneratedTypeShapeProvider }),
                 _ => throw Assumes.NotReachable(),
             };

@@ -20,7 +20,7 @@ public class HeaderDelimitedMessageHandlerTests : TestBase
         this.handler = new HeaderDelimitedMessageHandler(
             PipeWriter.Create(this.sendingStream, new StreamPipeWriterOptions(leaveOpen: true)),
             PipeReader.Create(this.receivingStream, new StreamPipeReaderOptions(leaveOpen: true)),
-            new JsonMessageFormatter());
+            CreateAnyJsonFormatter());
     }
 
     [Fact]

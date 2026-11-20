@@ -5,29 +5,25 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.Threading;
 
-public class MessageHeaderTests : TestBase
+public abstract class MessageHeaderTests : TestBase
 {
+    private readonly IJsonRpcMessageTextFormatter formatter;
     private readonly Stream clientStream;
     private readonly Stream serverStream;
 
-    public MessageHeaderTests(ITestOutputHelper logger)
+    protected MessageHeaderTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
         : base(logger)
     {
+        this.formatter = formatter;
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
         this.serverStream = streams.Item1;
         this.clientStream = streams.Item2;
     }
 
-    public static IEnumerable<object[]> TestedEncodings => new[]
-    {
-        new[] { "utf-8" },
-        new[] { "utf-16" },
-    };
-
     [Fact]
     public async Task HeaderEmitted()
     {
-        var clientRpc = JsonRpc.Attach(this.clientStream);
+        var clientRpc = JsonRpc.Attach(new HeaderDelimitedMessageHandler(this.clientStream, this.formatter));
         this.TimeoutToken.Register(clientRpc.Dispose);
 
         await clientRpc.NotifyAsync("someMethod");
@@ -72,20 +68,23 @@ public class MessageHeaderTests : TestBase
         this.Logger.WriteLine(message);
     }
 
-    [Theory]
-    [MemberData(nameof(TestedEncodings))]
-    public async Task ReceiveMessageWithEncoding(string encodingName)
+    [Fact]
+    public Task ReceiveMessageWithUtf8Encoding() => this.ReceiveMessageWithEncodingAsync(Encoding.UTF8);
+
+    [Fact]
+    public Task SendMessageWithUtf8Encoding() => this.SendMessageWithEncodingAsync(Encoding.UTF8);
+
+    protected async Task ReceiveMessageWithEncodingAsync(Encoding contentEncoding)
     {
         var server = new Server();
-        var rpcServer = JsonRpc.Attach(this.serverStream, server);
+        var rpcServer = JsonRpc.Attach(new HeaderDelimitedMessageHandler(this.serverStream, this.serverStream, this.formatter), server);
 
-        Encoding contentEncoding = Encoding.GetEncoding(encodingName);
+        string encodingName = contentEncoding.WebName;
         string jsonMessage = @"{""jsonrpc"":""2.0"",""method"":""Foo"",""id"":1}";
         byte[] message = contentEncoding.GetBytes(jsonMessage);
 
         // Write the header, which is always in ASCII.
         Encoding headerEncoding = Encoding.ASCII;
-        var headerBuffer = new MemoryStream();
         string header = $"Content-Length: {message.Length}\r\nContent-Type: text/plain; charset={encodingName}\r\n\r\n";
         byte[] headerBytes = headerEncoding.GetBytes(header);
         await this.clientStream.WriteAsync(headerBytes, 0, headerBytes.Length, this.TimeoutToken);
@@ -93,18 +92,21 @@ public class MessageHeaderTests : TestBase
 
         // Wait for response.
         byte[] receiveBuffer = new byte[1];
-        int readBytes = await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
+        _ = await this.clientStream.ReadAsync(receiveBuffer, 0, 1, this.TimeoutToken); // just wait for the response to start.
 
         Assert.Equal(1, server.FooCalledCount);
     }
 
-    [Theory]
-    [MemberData(nameof(TestedEncodings))]
-    public async Task SendMessageWithEncoding(string encodingName)
+    protected async Task SendMessageWithEncodingAsync(Encoding encoding)
     {
-        var messageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream);
+        string encodingName = encoding.WebName;
+        var messageHandler = new HeaderDelimitedMessageHandler(this.clientStream, this.clientStream, this.formatter);
         var rpcClient = new JsonRpc(messageHandler);
-        messageHandler.Encoding = Encoding.GetEncoding(encodingName);
+        if (encoding.CodePage != messageHandler.Encoding.CodePage)
+        {
+            messageHandler.Encoding = encoding;
+        }
+
         await rpcClient.NotifyAsync("Foo").WithCancellation(this.TimeoutToken);
         rpcClient.Dispose();
 
@@ -132,7 +134,7 @@ public class MessageHeaderTests : TestBase
         // Because the first StreamReader probably read farther (to fill its buffer) than the end of the headers,
         // we need to reposition the stream at the start of the content to create a new StreamReader.
         seekableServerStream.Position = bytesRead;
-        reader = new StreamReader(seekableServerStream, Encoding.GetEncoding(encodingName));
+        reader = new StreamReader(seekableServerStream, encoding);
         string json = await reader.ReadToEndAsync().WithCancellation(this.TimeoutToken);
         Assert.Equal('{', json[0]);
     }

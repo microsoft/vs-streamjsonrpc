@@ -15,6 +15,7 @@ public partial class AssemblyLoadTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public void JsonDoesNotLoadMessagePackDoesUnnecessarily()
     {
         AppDomain testDomain = CreateTestAppDomain();
@@ -36,6 +37,7 @@ public partial class AssemblyLoadTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public void MessagePackDoesNotLoadNewtonsoftJsonUnnecessarily()
     {
         AppDomain testDomain = CreateTestAppDomain();
@@ -141,6 +143,7 @@ public partial class AssemblyLoadTests : TestBase
             }
         }
 
+        [Obsolete(ObsoleteFormatter)]
         internal void CreateNewtonsoftJsonConnection()
         {
             var jsonRpc = new JsonRpc(new HeaderDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, new JsonMessageFormatter()));
@@ -151,6 +154,7 @@ public partial class AssemblyLoadTests : TestBase
             var jsonRpc = new JsonRpc(new HeaderDelimitedMessageHandler(FullDuplexStream.CreatePipePair().Item1, new MockFormatter()));
         }
 
+        [Obsolete(ObsoleteFormatter)]
         internal void CreateMessagePackConnection()
         {
             var jsonRpc = new JsonRpc(new LengthHeaderMessageHandler(FullDuplexStream.CreatePipePair().Item1, new MessagePackFormatter()));

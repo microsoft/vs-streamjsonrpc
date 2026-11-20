@@ -12,12 +12,12 @@ using Newtonsoft.Json.Linq;
 /// Verifies the <see cref="JsonRpc"/> class's functionality as a JSON-RPC 2.0 *client* (i.e. the one sending requests, and receiving results)
 /// against various server messages.
 /// </summary>
-public class JsonRpcClient20InteropTests : InteropTestBase
+public abstract class JsonRpcClient20InteropTests : InteropTestBase
 {
-    private readonly JsonRpc clientRpc;
+    protected readonly JsonRpc clientRpc;
 
-    public JsonRpcClient20InteropTests(ITestOutputHelper logger)
-        : base(logger)
+    protected JsonRpcClient20InteropTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
+        : base(formatter, logger)
     {
         this.clientRpc = new JsonRpc(this.messageHandler)
         {
@@ -104,28 +104,6 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         JToken request = await this.ReceiveAsync();
         Assert.Equal(JTokenType.Array, request["params"]!.Type);
         Assert.Empty((JArray?)request["params"]!);
-    }
-
-    [Fact]
-    public async Task SerializeWithNoWhitespace()
-    {
-        Task notifyTask = this.clientRpc.NotifyAsync("test");
-        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
-        string json = jtoken.ToString(Formatting.None);
-        this.Logger.WriteLine(json);
-        Assert.Equal(@"{""jsonrpc"":""2.0"",""method"":""test"",""params"":[]}", json);
-    }
-
-    [Fact]
-    public async Task SerializeWithPrettyFormatting()
-    {
-        Task notifyTask = this.clientRpc.NotifyAsync("test");
-        JToken jtoken = await this.messageHandler.WrittenMessages.DequeueAsync(this.TimeoutToken);
-        string json = jtoken.ToString();
-        this.Logger.WriteLine(json);
-        string expected = "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"test\",\n  \"params\": []\n}"
-            .Replace("\n", Environment.NewLine);
-        Assert.Equal(expected, json);
     }
 
     [Fact]
@@ -269,12 +247,6 @@ public class JsonRpcClient20InteropTests : InteropTestBase
     }
 
     [Fact]
-    public async Task NotifyWithParameterPassedAsObjectAsync_ThrowsExceptions()
-    {
-        var ex = await Assert.ThrowsAsync<JsonSerializationException>(() => this.clientRpc.NotifyWithParameterObjectAsync("test", new int[] { 1, 2 }));
-    }
-
-    [Fact]
     public async Task CancelMessageSentAndResponseCompletes()
     {
         using (var cts = new CancellationTokenSource())
@@ -336,7 +308,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken)ex.ErrorData!).ToObject<CommonErrorData>(new JsonSerializer());
+        var commonErrorData = this.ToJToken(ex.ErrorData!).ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
     }
 
@@ -362,7 +334,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        var commonErrorData = ((JToken?)ex.ErrorData)!.ToObject<CommonErrorData>(new JsonSerializer());
+        var commonErrorData = this.ToJToken(ex.ErrorData!).ToObject<CommonErrorData>(new JsonSerializer());
         Assert.Equal(errorObject.error.data.stack, commonErrorData?.StackTrace);
         Assert.Equal(-2147467261, commonErrorData?.HResult);
     }
@@ -390,7 +362,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         };
         this.Send(errorObject);
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-        JToken errorDataToken = (JToken)ex.ErrorData!;
+        JToken errorDataToken = this.ToJToken(ex.ErrorData!);
         Assert.Throws<JsonReaderException>(() => errorDataToken.ToObject<CommonErrorData>(new JsonSerializer()));
         Assert.Equal(errorData.stack.foo, errorDataToken["stack"]?.Value<int>("foo"));
     }
@@ -417,8 +389,12 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         });
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Equal(expectedMessage, ex.Message);
-        var errorData = Assert.IsType<JObject>(ex.ErrorData);
-        Assert.Empty(errorData.Properties());
+        var errorData = Assert.IsType<CommonErrorData>(ex.DeserializedErrorData);
+        Assert.Null(errorData.TypeName);
+        Assert.Null(errorData.Message);
+        Assert.Null(errorData.StackTrace);
+        Assert.Equal(0, errorData.HResult);
+        Assert.Null(errorData.Inner);
     }
 
     [Fact]
@@ -441,7 +417,7 @@ public class JsonRpcClient20InteropTests : InteropTestBase
         });
         var ex = await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
         Assert.Equal(expectedMessage, ex.Message);
-        Assert.Equal(expectedData, ((JToken?)ex.ErrorData)?.Value<string>());
+        Assert.Equal(expectedData, this.ToJToken(ex.ErrorData!).Value<string>());
     }
 
     [Fact]
@@ -460,26 +436,6 @@ public class JsonRpcClient20InteropTests : InteropTestBase
             },
         });
         await Assert.ThrowsAsync<RemoteInvocationException>(() => requestTask);
-    }
-
-    /// <summary>
-    /// Some lesser JSON-RPC servers may convert the request ID from the JSON number that we sent to a string.
-    /// Reproduce that to verify that our client functionality is resilient enough to withstand that bad behavior.
-    /// </summary>
-    [Fact]
-    public async Task ServerReturnsOurRequestIdAsString()
-    {
-        var invokeTask = this.clientRpc.InvokeWithCancellationAsync<string>("test", cancellationToken: this.TimeoutToken);
-        dynamic request = await this.ReceiveAsync();
-        this.Send(new
-        {
-            jsonrpc = "2.0",
-            id = request.id.ToString(), // deliberately return the request id as a string instead of an integer.
-            result = "pass",
-        });
-
-        string result = await invokeTask.WithCancellation(this.TimeoutToken);
-        Assert.Equal("pass", result);
     }
 
     [Fact]
