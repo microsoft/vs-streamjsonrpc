@@ -2439,7 +2439,11 @@ public class MessagePackFormatter : FormatterBase, IJsonRpcMessageFormatter, IJs
 
             protected internal override void SetExpectedDataType(Type dataType)
             {
-                Verify.Operation(!this.MsgPackData.IsEmpty, "Data is no longer available or has already been deserialized.");
+                // The error object's data member is optional (JSON-RPC 2.0 section 5.1), so there may be nothing to deserialize.
+                if (this.MsgPackData.IsEmpty)
+                {
+                    return;
+                }
 
                 this.Data = this.GetData(dataType);
 
