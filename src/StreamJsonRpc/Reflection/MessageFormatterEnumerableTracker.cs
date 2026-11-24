@@ -137,6 +137,8 @@ public class MessageFormatterEnumerableTracker : System.IAsyncDisposable
         long handle = Interlocked.Increment(ref this.nextToken);
         lock (this.syncObject)
         {
+            this.jsonRpc.DisconnectedToken.ThrowIfCancellationRequested();
+
             // We only track the token if we are serializing a request, since per our documentation,
             // we forcibly terminate the enumerable at the client side when the request has been responded to.
             // Storing request IDs for outbound *responses* that carry enumerables would lead to them being disposed of

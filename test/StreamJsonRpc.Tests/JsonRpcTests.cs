@@ -2696,6 +2696,26 @@ public abstract partial class JsonRpcTests : TestBase
         Assert.True(server.IsDisposed);
     }
 
+    [Fact]
+    public async Task DisposeOnDisconnect_TargetDisposalUnblocksEnumerator()
+    {
+        var streams = FullDuplexStream.CreatePair();
+        var server = new TargetDependentEnumerableServer();
+        var serverRpc = new JsonRpc(streams.Item2);
+        var clientRpc = new JsonRpc(streams.Item1);
+        serverRpc.AddLocalRpcTarget(server, new JsonRpcTargetOptions { DisposeOnDisconnect = true });
+        serverRpc.StartListening();
+        clientRpc.StartListening();
+
+        IAsyncEnumerable<int> enumerable = await clientRpc.InvokeAsync<IAsyncEnumerable<int>>(nameof(TargetDependentEnumerableServer.GetNumbersAsync));
+        Assert.True(await enumerable.GetAsyncEnumerator(this.TimeoutToken).MoveNextAsync());
+
+        clientRpc.Dispose();
+        await serverRpc.Completion.WithCancellation(this.TimeoutToken);
+        Assert.True(server.IsDisposed);
+        Assert.True(server.IsEnumeratorDisposed);
+    }
+
     [Theory]
     [CombinatorialData]
     public async Task DisposeOnDisconnect_VsThreadingAsyncDisposable(bool throwFromDispose)
@@ -4401,6 +4421,35 @@ public abstract partial class JsonRpcTests : TestBase
         {
             await this.enumeratorDisposed.WaitAsync();
             this.IsDisposed = true;
+        }
+    }
+
+    public class TargetDependentEnumerableServer : System.IAsyncDisposable
+    {
+        private readonly AsyncManualResetEvent targetDisposed = new AsyncManualResetEvent();
+
+        internal bool IsDisposed { get; private set; }
+
+        internal bool IsEnumeratorDisposed { get; private set; }
+
+        public async IAsyncEnumerable<int> GetNumbersAsync()
+        {
+            try
+            {
+                yield return 1;
+            }
+            finally
+            {
+                await this.targetDisposed.WaitAsync();
+                this.IsEnumeratorDisposed = true;
+            }
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            this.IsDisposed = true;
+            this.targetDisposed.Set();
+            return default;
         }
     }
 

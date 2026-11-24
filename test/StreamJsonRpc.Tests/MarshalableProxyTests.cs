@@ -991,6 +991,28 @@ public abstract partial class MarshalableProxyTests : TestBase
     }
 
     [Fact]
+    [Trait("GC", "")]
+    public async Task DisconnectReleasesCallScopedMarshalableDeferredByAsyncEnumerable()
+    {
+        WeakReference marshalable = await InvokeAndDisconnectAsync();
+        await this.AssertWeakReferenceGetsCollectedAsync(marshalable);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        async Task<WeakReference> InvokeAndDisconnectAsync()
+        {
+            MarshalableAndSerializable marshalable = new();
+            IAsyncEnumerable<int> enumerable = this.client.CallScopedMarshalableReturnsAsyncEnumerable(marshalable);
+            IAsyncEnumerator<int> enumerator = enumerable.GetAsyncEnumerator(this.TimeoutToken);
+            Assert.True(await enumerator.MoveNextAsync());
+
+            this.clientRpc.Dispose();
+            await this.serverRpc.Completion.WithCancellation(this.TimeoutToken);
+            Assert.False(marshalable.IsDisposed);
+            return new WeakReference(marshalable);
+        }
+    }
+
+    [Fact]
     public async Task RpcMarshalable_CallScopedLifetime_AsyncEnumerableThrown()
     {
         this.clientRpc.AllowModificationWhileListening = true;

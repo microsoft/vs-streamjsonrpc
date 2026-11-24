@@ -2943,6 +2943,16 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
             exceptions.Add(ex);
         }
 
+        ValueTask targetDisposal = default;
+        try
+        {
+            targetDisposal = this.rpcTargetInfo.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
         try
         {
             if (this.enumerableTracker is not null)
@@ -2957,7 +2967,7 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
         try
         {
-            await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
+            await targetDisposal.ConfigureAwait(false);
         }
         catch (Exception ex)
         {

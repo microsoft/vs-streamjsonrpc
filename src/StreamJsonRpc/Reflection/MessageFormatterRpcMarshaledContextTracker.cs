@@ -64,6 +64,8 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     private readonly JsonRpc jsonRpc;
     private readonly IJsonRpcFormatterState formatterState;
     private readonly ProxyFactory proxyFactory;
+    private readonly Dictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> deferredOutboundRequestIdMarshalMap = new();
+    private readonly object deferredOutboundRequestLock = new();
     private long nextUniqueHandle;
 
     /// <summary>
@@ -331,10 +333,18 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     /// </summary>
     internal void CleanUpOnDisconnect()
     {
-        ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> pending = Interlocked.Exchange(
-            ref this.outboundRequestIdMarshalMap,
-            ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty);
-        foreach (ImmutableList<(long Handle, bool CallScoped)> handles in pending.Values)
+        ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>> pending;
+        ImmutableList<(long Handle, bool CallScoped)>[] deferred;
+        lock (this.deferredOutboundRequestLock)
+        {
+            pending = Interlocked.Exchange(
+                ref this.outboundRequestIdMarshalMap,
+                ImmutableDictionary<RequestId, ImmutableList<(long Handle, bool CallScoped)>>.Empty);
+            deferred = this.deferredOutboundRequestIdMarshalMap.Values.ToArray();
+            this.deferredOutboundRequestIdMarshalMap.Clear();
+        }
+
+        foreach (ImmutableList<(long Handle, bool CallScoped)> handles in pending.Values.Concat(deferred))
         {
             foreach ((long handle, bool callScoped) in handles)
             {
@@ -445,21 +455,48 @@ internal abstract partial class MessageFormatterRpcMarshaledContextTracker
     internal IDisposable? OutboundCleanupDeferral(RequestId requestId)
     {
         // Remove the handles from the map so that they don't get cleaned up when the request is completed.
-        if (ImmutableInterlocked.TryRemove(ref this.outboundRequestIdMarshalMap, requestId, out ImmutableList<(long Handle, bool CallScoped)>? handles))
+        bool deferred;
+        lock (this.deferredOutboundRequestLock)
         {
-            return new DisposableAction(delegate
+            deferred = ImmutableInterlocked.TryRemove(ref this.outboundRequestIdMarshalMap, requestId, out ImmutableList<(long Handle, bool CallScoped)>? handles);
+            if (deferred)
             {
-                // Add the handles back to the map so that they get cleaned up in the normal way, which we then invoke immediately,
-                // since the time to clean them up normally has presumably already passed.
-                Assumes.True(ImmutableInterlocked.TryAdd(ref this.outboundRequestIdMarshalMap, requestId, handles));
-                this.CleanUpOutboundResources(requestId, successful: true);
-            });
+                this.deferredOutboundRequestIdMarshalMap.Add(requestId, handles!);
+            }
         }
-        else
+
+        if (!deferred)
         {
             // Nothing to defer.
             return null;
         }
+
+        if (this.jsonRpc.DisconnectedToken.IsCancellationRequested)
+        {
+            this.CleanUpOnDisconnect();
+        }
+
+        return new DisposableAction(() =>
+        {
+            ImmutableList<(long Handle, bool CallScoped)>? handles;
+            lock (this.deferredOutboundRequestLock)
+            {
+                if (!this.deferredOutboundRequestIdMarshalMap.TryGetValue(requestId, out handles))
+                {
+                    return;
+                }
+
+                this.deferredOutboundRequestIdMarshalMap.Remove(requestId);
+            }
+
+            foreach ((long handle, bool callScoped) in handles)
+            {
+                if (callScoped)
+                {
+                    this.ReleaseMarshaledObject(handle, ownedBySender: false);
+                }
+            }
+        });
     }
 
     protected abstract RpcTargetMetadata GetRpcTargetMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type interfaceType);
