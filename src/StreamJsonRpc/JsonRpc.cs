@@ -99,6 +99,9 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     /// Tracks RPC target objects.
     /// </summary>
     private readonly RpcTargetInfo rpcTargetInfo;
+    private MessageFormatterEnumerableTracker? enumerableTracker;
+    private MessageFormatterRpcMarshaledContextTracker? rpcMarshaledContextTracker;
+    private MessageFormatterProgressTracker? progressTracker;
 
     private ExceptionSerializationHelpers.IExceptionTypeLoader? trimUnsafeTypeLoader;
 
@@ -1585,6 +1588,27 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
     }
 
     /// <summary>
+    /// Registers the formatter's enumerable tracker for disposal when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterEnumerableTracker(MessageFormatterEnumerableTracker tracker)
+    {
+        this.enumerableTracker = tracker;
+    }
+
+    /// <summary>
+    /// Registers the formatter's marshaled-object tracker for cleanup when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterRpcMarshaledContextTracker(MessageFormatterRpcMarshaledContextTracker tracker) => this.rpcMarshaledContextTracker = tracker;
+
+    /// <summary>
+    /// Registers the formatter's progress tracker for cleanup when this connection closes.
+    /// </summary>
+    /// <param name="tracker">The tracker owned by this connection.</param>
+    internal void RegisterProgressTracker(MessageFormatterProgressTracker tracker) => this.progressTracker = tracker;
+
+    /// <summary>
     /// Adds the specified target as possible object to invoke when incoming messages are received.
     /// </summary>
     /// <param name="exposingMembersOn">
@@ -2903,7 +2927,47 @@ public class JsonRpc : IDisposableObservable, IJsonRpcFormatterCallbacks, IJsonR
 
         try
         {
-            await this.rpcTargetInfo.DisposeAsync().ConfigureAwait(false);
+            this.rpcMarshaledContextTracker?.CleanUpOnDisconnect();
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            this.progressTracker?.CleanUpOnDisconnect();
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        ValueTask targetDisposal = default;
+        try
+        {
+            targetDisposal = this.rpcTargetInfo.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            if (this.enumerableTracker is not null)
+            {
+                await this.enumerableTracker.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        try
+        {
+            await targetDisposal.ConfigureAwait(false);
         }
         catch (Exception ex)
         {

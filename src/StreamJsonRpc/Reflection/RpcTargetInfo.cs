@@ -55,15 +55,38 @@ internal class RpcTargetInfo : System.IAsyncDisposable
 
         if (objectsToDispose is object)
         {
-            List<Exception>? exceptions = null;
+            List<Task<Exception?>> disposals = new(objectsToDispose.Count);
             foreach (object target in objectsToDispose)
             {
-                // We're calling Dispose on the target objects, so switch to the user-supplied SyncContext for those target objects.
-                await this.jsonRpc.SynchronizationContextOrDefault;
+                disposals.Add(DisposeTargetAsync(target));
+            }
 
+            Exception?[] disposalExceptions = await Task.WhenAll(disposals).ConfigureAwait(false);
+            List<Exception> exceptions = new();
+            foreach (Exception? exception in disposalExceptions)
+            {
+                if (exception is not null)
+                {
+                    exceptions.Add(exception);
+                }
+            }
+
+            if (exceptions.Count == 1)
+            {
+                ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+            }
+
+            if (exceptions.Count > 1)
+            {
+                throw new AggregateException(exceptions);
+            }
+
+            async Task<Exception?> DisposeTargetAsync(object target)
+            {
                 try
                 {
-                    // Arrange to dispose of the target when the connection is closed.
+                    // Switch to the user-supplied SyncContext before calling the target.
+                    await this.jsonRpc.SynchronizationContextOrDefault;
                     if (target is System.IAsyncDisposable asyncDisposableTarget)
                     {
                         await asyncDisposableTarget.DisposeAsync().ConfigureAwait(false);
@@ -76,22 +99,13 @@ internal class RpcTargetInfo : System.IAsyncDisposable
                     {
                         disposableTarget.Dispose();
                     }
+
+                    return null;
                 }
                 catch (Exception ex)
                 {
-                    exceptions ??= new List<Exception>();
-                    exceptions.Add(ex);
+                    return ex;
                 }
-            }
-
-            if (exceptions is object)
-            {
-                if (exceptions.Count == 1)
-                {
-                    ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
-                }
-
-                throw new AggregateException(exceptions);
             }
         }
     }
