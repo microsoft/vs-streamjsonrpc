@@ -17,7 +17,14 @@ A consuming application can target NativeAOT while referencing StreamJsonRpc by 
    Set the <xref:StreamJsonRpc.JsonRpcProxyOptions.AcceptProxyWithExtraInterfaces?displayProperty=nameWithType> property to `true` to reduce the number of predefined groups for which proxies must be specially generated.
 1. Use <xref:StreamJsonRpc.NerdbankMessagePackFormatter> or <xref:StreamJsonRpc.SystemTextJsonFormatter> instead of the default <xref:StreamJsonRpc.JsonMessageFormatter>.
    <xref:StreamJsonRpc.NerdbankMessagePackFormatter> provides the best and safest experience and greatest set of functionality when you can use MessagePack encoding, including support for [RPC marshalable objects](../exotic_types/rpc_marshalable_objects.md) in NativeAOT scenarios, but <xref:StreamJsonRpc.SystemTextJsonFormatter> must be used when UTF-8 JSON encoding is required.
-1. Set <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on the <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType> property to the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>.
+1. Configure <xref:System.Text.Json.JsonSerializerOptions.TypeInfoResolver> on a new options instance with the `Default` property on your class that derives from <xref:System.Text.Json.Serialization.JsonSerializerContext>, then assign that instance to <xref:StreamJsonRpc.SystemTextJsonFormatter.JsonSerializerOptions?displayProperty=nameWithType>.
+   For example, use `JsonSerializerOptions = new() { TypeInfoResolver = MyContext.Default }` in the formatter's object initializer.
+   You can also configure multiple resolvers with `TypeInfoResolverChain`.
+   When constructed or assigned options, the formatter prepends its generated metadata for built-in types, including <xref:StreamJsonRpc.RequestId> used by cancellation notifications.
+   Your resolvers must supply metadata for your application's payload types.
+   The formatter does not add a reflection-based fallback to explicitly configured resolvers.
+   To override built-in metadata, insert your custom resolver at the beginning of the formatter's `TypeInfoResolverChain` after assigning the options and before serialization.
+   Replacing `TypeInfoResolver` through the options getter (including `JsonSerializerOptions = { TypeInfoResolver = ... }` without `new()`) replaces the entire resolver chain and removes the built-in registration.
 1. When using <xref:StreamJsonRpc.SystemTextJsonFormatter> with <xref:System.Collections.Generic.IAsyncEnumerable`1> or <xref:System.IProgress`1>, call <xref:StreamJsonRpc.SystemTextJsonFormatter.RegisterGenericType*> for each value type used as `T`.
    Registering these types statically allows NativeAOT to generate the specialized converters; adding the constructed generic types to your <xref:System.Text.Json.Serialization.JsonSerializerContext> alone is not sufficient.
 1. Use <xref:StreamJsonRpc.JsonRpc.AddLocalRpcTarget(StreamJsonRpc.RpcTargetMetadata,System.Object,StreamJsonRpc.JsonRpcTargetOptions)?displayProperty=nameWithType> to add RPC target objects rather than other overloads.
