@@ -34,7 +34,7 @@ public class SpecialCaseTests : TestBase
     public async Task ResponseTransmissionFailureDropsConnection()
     {
         var pair = FullDuplexStream.CreatePair();
-        var clientRpc = JsonRpc.Attach(pair.Item1);
+        var clientRpc = JsonRpc.Attach(new HeaderDelimitedMessageHandler(pair.Item1, CreateAnyFormatter()));
         var serverRpc = new JsonRpc(new ThrowingMessageHandler(pair.Item2), new Server());
         serverRpc.StartListening();
         await Assert.ThrowsAsync<ConnectionLostException>(() => clientRpc.InvokeAsync("Hi"));
@@ -44,7 +44,7 @@ public class SpecialCaseTests : TestBase
     public async Task TraceListenerThrows_CausesDisconnect()
     {
         var pair = FullDuplexStream.CreatePair();
-        var serverRpc = new JsonRpc(pair.Item1)
+        var serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(pair.Item1, CreateAnyFormatter()))
         {
             TraceSource =
             {
@@ -81,7 +81,7 @@ public class SpecialCaseTests : TestBase
 
         static JsonRpc CreateJsonRpc(Stream stream, ExceptionProcessing exceptionStrategy, object? target = null)
         {
-            var rpc = new JsonRpc(stream)
+            var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(stream, CreateAnyFormatter()))
             {
                 ExceptionStrategy = exceptionStrategy,
             };
@@ -124,7 +124,7 @@ public class SpecialCaseTests : TestBase
     private class ThrowingMessageHandler : HeaderDelimitedMessageHandler
     {
         public ThrowingMessageHandler(Stream duplexStream)
-            : base(duplexStream)
+            : base(duplexStream, new SystemTextJsonFormatter())
         {
         }
 

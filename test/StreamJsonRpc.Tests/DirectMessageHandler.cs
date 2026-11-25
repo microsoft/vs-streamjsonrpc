@@ -1,15 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Buffers;
 using Microsoft.VisualStudio.Threading;
+using Nerdbank.Streams;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 
 public class DirectMessageHandler : MessageHandlerBase
 {
-    public DirectMessageHandler()
-        : base(new JsonMessageFormatter())
+    public DirectMessageHandler(IJsonRpcMessageTextFormatter formatter)
+        : base(formatter)
     {
     }
 
@@ -17,7 +20,7 @@ public class DirectMessageHandler : MessageHandlerBase
 
     public override bool CanWrite => true;
 
-    public new JsonMessageFormatter Formatter => (JsonMessageFormatter)base.Formatter;
+    public new IJsonRpcMessageTextFormatter Formatter => (IJsonRpcMessageTextFormatter)base.Formatter;
 
     internal AsyncQueue<JToken> MessagesToRead { get; } = new AsyncQueue<JToken>();
 
@@ -25,12 +28,17 @@ public class DirectMessageHandler : MessageHandlerBase
 
     protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
-        return this.Formatter.Deserialize(await this.MessagesToRead.DequeueAsync(cancellationToken));
+        string json = (await this.MessagesToRead.DequeueAsync(cancellationToken)).ToString(Formatting.None);
+        byte[] bytes = this.Formatter.Encoding.GetBytes(json);
+        return this.Formatter.Deserialize(new ReadOnlySequence<byte>(bytes));
     }
 
     protected override ValueTask WriteCoreAsync(JsonRpcMessage content, CancellationToken cancellationToken)
     {
-        this.WrittenMessages.Enqueue(this.Formatter.Serialize(content));
+        using var buffer = new Sequence<byte>();
+        this.Formatter.Serialize(buffer, content);
+        string json = this.Formatter.Encoding.GetString(buffer.AsReadOnlySequence.ToArray());
+        this.WrittenMessages.Enqueue(JToken.Parse(json));
         return default;
     }
 

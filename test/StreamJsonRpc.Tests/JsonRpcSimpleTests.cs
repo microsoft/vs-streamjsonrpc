@@ -4,19 +4,19 @@
 /// <summary>
 /// <see cref="JsonRpc"/> tests that don't exercise the <see cref="IJsonRpcMessageHandler"/> or <see cref="IJsonRpcMessageFormatter"/>.
 /// </summary>
-public class JsonRpcSimpleTests
+public class JsonRpcSimpleTests(ITestOutputHelper logger) : TestBase(logger)
 {
     [Fact]
     public void DisplayName_Default()
     {
-        JsonRpc jsonRpc = new JsonRpc(Stream.Null);
+        JsonRpc jsonRpc = new JsonRpc(new HeaderDelimitedMessageHandler(Stream.Null, CreateAnyFormatter()));
         Assert.Null(jsonRpc.DisplayName);
     }
 
     [Fact]
     public void DisplayName_Settable()
     {
-        JsonRpc jsonRpc = new(Stream.Null)
+        JsonRpc jsonRpc = new(new HeaderDelimitedMessageHandler(Stream.Null, CreateAnyFormatter()))
         {
             DisplayName = "Test name",
         };

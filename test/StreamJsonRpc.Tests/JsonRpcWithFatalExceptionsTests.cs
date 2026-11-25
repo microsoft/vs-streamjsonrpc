@@ -15,8 +15,8 @@ public class JsonRpcWithFatalExceptionsTests : TestBase
         this.server = new Server();
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
 
-        this.clientMessageHandler = new HeaderDelimitedMessageHandler(streams.Item1, streams.Item1);
-        this.serverMessageHandler = new HeaderDelimitedMessageHandler(streams.Item2, streams.Item2);
+        this.clientMessageHandler = new HeaderDelimitedMessageHandler(streams.Item1, streams.Item1, CreateAnyFormatter());
+        this.serverMessageHandler = new HeaderDelimitedMessageHandler(streams.Item2, streams.Item2, CreateAnyFormatter());
 
         this.clientRpc = new JsonRpc(this.clientMessageHandler);
         this.serverRpc = new JsonRpcWithFatalExceptions(this.serverMessageHandler, this.server);

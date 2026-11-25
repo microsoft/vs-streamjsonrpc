@@ -30,11 +30,11 @@ public abstract class WebSocketMessageHandlerTests : TestBase
     [Fact]
     public void CtorInputValidation()
     {
-        Assert.Throws<ArgumentNullException>(() => new WebSocketMessageHandler(null!));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), -1));
-        new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 1);
-        new WebSocketMessageHandler(new MockWebSocket(), new JsonMessageFormatter(), 1 * 1024 * 1024);
+        Assert.Throws<ArgumentNullException>(() => new WebSocketMessageHandler(null!, CreateAnyFormatter()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), CreateAnyFormatter(), 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WebSocketMessageHandler(new MockWebSocket(), CreateAnyFormatter(), -1));
+        new WebSocketMessageHandler(new MockWebSocket(), CreateAnyFormatter(), 1);
+        new WebSocketMessageHandler(new MockWebSocket(), CreateAnyFormatter(), 1 * 1024 * 1024);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public abstract class WebSocketMessageHandlerTests : TestBase
         var testClient = testServer.CreateWebSocketClient();
         var webSocket = await testClient.ConnectAsync(testServer.BaseAddress, this.TimeoutToken);
 
-        var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket));
+        var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket, new SystemTextJsonFormatter()));
         rpc.StartListening();
         return (rpc, webSocket);
     }
@@ -269,7 +269,7 @@ public abstract class WebSocketMessageHandlerTests : TestBase
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                    using (var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket), new EchoServer(webSocket)))
+                    using (var rpc = new JsonRpc(new WebSocketMessageHandler(webSocket, new SystemTextJsonFormatter()), new EchoServer(webSocket)))
                     {
                         rpc.StartListening();
                         await rpc.Completion;

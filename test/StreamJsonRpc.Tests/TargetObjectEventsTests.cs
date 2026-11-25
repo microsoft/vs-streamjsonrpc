@@ -208,7 +208,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
         var streams = FullDuplexStream.CreateStreams();
         var serverRpc = this.CreateJsonRpcWithTargetObject(streams.Item1, sharedServer);
-        var clientRpc = new JsonRpc(streams.Item2);
+        var clientRpc = new JsonRpc(CreateAnyHandler(streams.Item2));
 
         serverRpc.StartListening();
         clientRpc.StartListening();
@@ -238,7 +238,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
     public void IncompatibleEventHandlerType()
     {
         var streams = FullDuplexStream.CreateStreams();
-        Assert.Throws<NotSupportedException>(() => JsonRpc.Attach(streams.Item1, new ServerWithIncompatibleEvents()));
+        Assert.Throws<NotSupportedException>(() => JsonRpc.Attach(CreateAnyHandler(streams.Item1), new ServerWithIncompatibleEvents()));
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         var clientWithTransform = new Client();
 
         this.serverRpc = this.CreateJsonRpcWithTargetObject(this.serverStream, serverWithTransform, new JsonRpcTargetOptions { EventNameTransform = eventNameTransform });
-        this.clientRpc = new JsonRpc(this.clientStream, this.clientStream);
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
 
         // We have to use MethodNameTransform here as Client uses methods to listen for events on server
         this.clientRpc.AddLocalRpcTarget(clientWithoutTransform);
@@ -308,7 +308,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverRpc = this.CreateJsonRpcWithTargetObject<IServer>(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
-        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
         var eventRaised = new TaskCompletionSource<EventArgs>();
         this.clientRpc.AddLocalRpcMethod(nameof(IServer.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
         var explicitEventRaised = new TaskCompletionSource<EventArgs>();
@@ -340,7 +340,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverRpc = this.CreateJsonRpcWithTargetObject<IServerDerived>(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
-        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
         var eventRaised = new TaskCompletionSource<EventArgs>();
         this.clientRpc.AddLocalRpcMethod(nameof(IServerDerived.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
         var derivedEventRaised = new TaskCompletionSource<EventArgs>();
@@ -378,7 +378,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
         this.serverRpc = this.CreateJsonRpcWithTargetObject(this.serverStream, this.server);
         this.serverRpc.StartListening();
 
-        this.clientRpc = new JsonRpc(this.clientStream);
+        this.clientRpc = new JsonRpc(CreateAnyHandler(this.clientStream));
         var eventRaised = new TaskCompletionSource<EventArgs>();
         this.clientRpc.AddLocalRpcMethod(nameof(IServer.InterfaceEvent), new Action<EventArgs>(eventRaised.SetResult));
         var explicitEventRaised = new TaskCompletionSource<EventArgs>();
@@ -415,7 +415,7 @@ public abstract partial class TargetObjectEventsTests : TestBase
 
     protected virtual JsonRpc CreateJsonRpcWithTargetObject<T>(Stream stream, T targetObject, JsonRpcTargetOptions? options = null)
         where T : notnull
-        => this.CreateJsonRpcWithTargetObject(new HeaderDelimitedMessageHandler(stream), targetObject, options);
+        => this.CreateJsonRpcWithTargetObject(CreateAnyHandler(stream), targetObject, options);
 
     protected virtual JsonRpc CreateJsonRpcWithTargetObject<T>(IJsonRpcMessageHandler messageHandler, T targetObject, JsonRpcTargetOptions? options = null)
         where T : notnull

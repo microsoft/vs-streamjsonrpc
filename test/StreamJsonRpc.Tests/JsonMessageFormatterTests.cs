@@ -7,6 +7,7 @@ using Nerdbank.Streams;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+[Obsolete(ObsoleteFormatter)]
 public class JsonMessageFormatterTests : FormatterTestBase<JsonMessageFormatter>
 {
     public JsonMessageFormatterTests(ITestOutputHelper logger)

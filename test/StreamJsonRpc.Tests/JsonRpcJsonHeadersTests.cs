@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+[Obsolete(ObsoleteFormatter)]
 public class JsonRpcJsonHeadersTests : JsonRpcTests
 {
     public JsonRpcJsonHeadersTests(ITestOutputHelper logger)

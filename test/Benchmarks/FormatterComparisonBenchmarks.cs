@@ -117,9 +117,11 @@ public partial class FormatterComparisonBenchmarks
     {
         return this.Formatter switch
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             "Newtonsoft" => new HeaderDelimitedMessageHandler(pipe, new JsonMessageFormatter()),
-            "SystemTextJson" => new HeaderDelimitedMessageHandler(pipe, new SystemTextJsonFormatter()),
             "MessagePackCSharp" => new LengthHeaderMessageHandler(pipe, new MessagePackFormatter()),
+#pragma warning restore CS0618 // Type or member is obsolete
+            "SystemTextJson" => new HeaderDelimitedMessageHandler(pipe, new SystemTextJsonFormatter()),
             "NerdbankMessagePack" => new LengthHeaderMessageHandler(pipe, new NerdbankMessagePackFormatter() { TypeShapeProvider = GeneratedTypeShapeProvider }),
             _ => throw Assumes.NotReachable(),
         };

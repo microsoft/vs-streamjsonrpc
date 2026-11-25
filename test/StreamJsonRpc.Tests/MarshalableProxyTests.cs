@@ -744,8 +744,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
 
         var streams = FullDuplexStream.CreatePair();
-        var localRpc = JsonRpc.Attach(streams.Item2);
-        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var localRpc = JsonRpc.Attach(CreateAnyHandler(streams.Item2));
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item1));
 
         serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         localRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);
@@ -772,8 +772,8 @@ public abstract partial class MarshalableProxyTests : TestBase
         server.ReturnedMarshalableWithOptionalInterfaces = new MarshalableSubType1();
 
         var streams = FullDuplexStream.CreatePair();
-        var localRpc = JsonRpc.Attach(streams.Item2);
-        var serverRpc = new JsonRpc(streams.Item1, streams.Item1);
+        var localRpc = JsonRpc.Attach(CreateAnyHandler(streams.Item2));
+        var serverRpc = new JsonRpc(CreateAnyHandler(streams.Item1));
 
         serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Verbose);
         localRpc.TraceSource = new TraceSource("Client", SourceLevels.Verbose);

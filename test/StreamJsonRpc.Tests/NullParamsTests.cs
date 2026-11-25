@@ -20,10 +20,12 @@ public class NullParamsTests
     {
         get
         {
+#pragma warning disable CS0618 // The tests cover behavior across both legacy and current formatters.
             yield return [new JsonMessageFormatter()];
+            yield return [new MessagePackFormatter()];
+#pragma warning restore CS0618
             yield return [new SystemTextJsonFormatter()];
             yield return [new PolyTypeJsonFormatter { TypeShapeProvider = ReflectionTypeShapeProvider.Default }];
-            yield return [new MessagePackFormatter()];
             yield return [new NerdbankMessagePackFormatter { TypeShapeProvider = ReflectionTypeShapeProvider.Default }];
         }
     }
@@ -32,7 +34,9 @@ public class NullParamsTests
     [MemberData(nameof(Formatters))]
     public void NullParamsAreAcceptedAndWarnedAboutOnce(IJsonRpcMessageFormatter formatter)
     {
+#pragma warning disable CS0618 // The tests cover behavior across both legacy and current formatters.
         byte[] request = formatter is MessagePackFormatter or NerdbankMessagePackFormatter ? MessagePackRequest : JsonRequest;
+#pragma warning restore CS0618
         var listener = new CollectingTraceListener();
         using var jsonRpc = new JsonRpc(new HeaderDelimitedMessageHandler(Stream.Null, formatter))
         {

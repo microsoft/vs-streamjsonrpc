@@ -45,11 +45,13 @@ module Program =
             do! clientPipe.ConnectAsync()
             do! serverConnection
 
-            use serverRpc = new JsonRpc(serverPipe)
+            let handler = new HeaderDelimitedMessageHandler(serverPipe, new SystemTextJsonFormatter())
+            use serverRpc = new JsonRpc(handler)
             serverRpc.AddLocalRpcTarget<IGreeter>(Greeter(), JsonRpcTargetOptions())
             serverRpc.StartListening()
 
-            use clientRpc = new JsonRpc(clientPipe)
+            let clientHandler = new HeaderDelimitedMessageHandler(clientPipe, new SystemTextJsonFormatter())
+            use clientRpc = new JsonRpc(clientHandler)
             let server = clientRpc.Attach<IGreeter>()
             clientRpc.StartListening()
 

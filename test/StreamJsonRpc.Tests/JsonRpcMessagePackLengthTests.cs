@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using MessagePack;
 using MessagePack.Formatters;
 using Microsoft.VisualStudio.Threading;
-using PolyType;
 
 public abstract partial class JsonRpcMessagePackLengthTests(ITestOutputHelper logger) : JsonRpcTests(logger)
 {

@@ -42,7 +42,7 @@ public class JsonRpcDisconnectedEventArgs : EventArgs
     /// <param name="description">The description.</param>
     /// <param name="reason">The reason for disconnection.</param>
     /// <param name="lastMessage">The last message.</param>
-    [Obsolete("Avoid overloads that assume the message is exchanged by JToken.")]
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken? lastMessage)
         : this(description, reason, lastMessage: lastMessage, exception: null)
     {
@@ -55,7 +55,7 @@ public class JsonRpcDisconnectedEventArgs : EventArgs
     /// <param name="reason">The reason for disconnection.</param>
     /// <param name="lastMessage">The last message.</param>
     /// <param name="exception">The exception.</param>
-    [Obsolete("Avoid overloads that assume the message is exchanged by JToken.")]
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     public JsonRpcDisconnectedEventArgs(string description, DisconnectedReason reason, JToken? lastMessage, Exception? exception)
     {
         Requires.NotNullOrWhiteSpace(description, nameof(description));

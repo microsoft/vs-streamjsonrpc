@@ -6,6 +6,7 @@ using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
 using Nerdbank.Streams;
 
+[Obsolete(ObsoleteFormatter)]
 public class MessagePackFormatterTests : FormatterTestBase<MessagePackFormatter>
 {
     public MessagePackFormatterTests(ITestOutputHelper logger)

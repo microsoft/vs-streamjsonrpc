@@ -8,12 +8,12 @@ public class StreamMessageHandlerTests : TestBase
 {
     private readonly MemoryStream sendingStream = new MemoryStream();
     private readonly MemoryStream receivingStream = new MemoryStream();
-    private DirectMessageHandler handler;
+    private MyStreamMessageHandler handler;
 
     public StreamMessageHandlerTests(ITestOutputHelper logger)
         : base(logger)
     {
-        this.handler = new DirectMessageHandler();
+        this.handler = new MyStreamMessageHandler(Stream.Null, Stream.Null, CreateAnyFormatter());
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task Ctor_AcceptsNullSendingStream()
     {
-        var handler = new MyStreamMessageHandler(null, this.receivingStream, new JsonMessageFormatter());
+        var handler = new MyStreamMessageHandler(null, this.receivingStream, CreateAnyFormatter());
         Assert.True(handler.CanRead);
         Assert.False(handler.CanWrite);
 
@@ -40,7 +40,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task Ctor_AcceptsNullReceivingStream()
     {
-        var handler = new MyStreamMessageHandler(this.sendingStream, null, new JsonMessageFormatter());
+        var handler = new MyStreamMessageHandler(this.sendingStream, null, CreateAnyFormatter());
         Assert.False(handler.CanRead);
         Assert.True(handler.CanWrite);
 
@@ -64,7 +64,7 @@ public class StreamMessageHandlerTests : TestBase
     public async Task Dispose_StreamsAreDisposed()
     {
         var streams = FullDuplexStream.CreateStreams();
-        var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2, new JsonMessageFormatter());
+        var handler = new MyStreamMessageHandler(streams.Item1, streams.Item2, CreateAnyFormatter());
         Assert.False(streams.Item1.IsDisposed);
         Assert.False(streams.Item2.IsDisposed);
         await handler.DisposeAsync();
@@ -99,7 +99,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task WriteAsync_PreferOperationCanceledException_MidExecution()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, new JsonMessageFormatter());
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, CreateAnyFormatter());
 
         var cts = new CancellationTokenSource();
         var writeTask = handler.WriteAsync(CreateRequestMessage(), cts.Token);
@@ -120,7 +120,7 @@ public class StreamMessageHandlerTests : TestBase
     [Fact]
     public async Task WriteAsync_SemaphoreIncludesWriteCoreAsync_Task()
     {
-        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, new JsonMessageFormatter());
+        var handler = new DelayedWriter(this.sendingStream, this.receivingStream, CreateAnyFormatter());
         var writeTask = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
         var write2Task = handler.WriteAsync(CreateRequestMessage(), CancellationToken.None).AsTask();
 

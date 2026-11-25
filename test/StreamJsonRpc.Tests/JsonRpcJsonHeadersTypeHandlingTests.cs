@@ -4,6 +4,7 @@
 using System.Text;
 using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class JsonRpcJsonHeadersTypeHandlingTests : JsonRpcJsonHeadersTests
 {
     public JsonRpcJsonHeadersTypeHandlingTests(ITestOutputHelper logger)

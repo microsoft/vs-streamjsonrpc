@@ -3,6 +3,7 @@
 
 using Newtonsoft.Json;
 
+[Obsolete(ObsoleteFormatter)]
 public class DisposableProxyJsonTests : DisposableProxyTests
 {
     public DisposableProxyJsonTests(ITestOutputHelper logger)

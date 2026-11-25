@@ -31,6 +31,7 @@ public class WebSocketMessageHandler : MessageHandlerBase, IJsonRpcMessageBuffer
     /// The <see cref="System.Net.WebSockets.WebSocket"/> used to communicate.
     /// This will <em>not</em> be automatically disposed of with this <see cref="WebSocketMessageHandler"/>.
     /// </param>
+    [Obsolete(Utilities.NewtonsoftJsonDefaultObsolete)]
     [RequiresDynamicCode(RuntimeReasons.Formatters), RequiresUnreferencedCode(RuntimeReasons.Formatters)]
     public WebSocketMessageHandler(WebSocket webSocket)
         : this(webSocket, new JsonMessageFormatter())

@@ -95,7 +95,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
     public async Task SendPipeWithoutMultiplexingStream()
     {
         (Stream, Stream) streamPair = FullDuplexStream.CreatePair();
-        var clientRpc = JsonRpc.Attach(streamPair.Item1);
+        var clientRpc = JsonRpc.Attach(new HeaderDelimitedMessageHandler(streamPair.Item1, CreateAnyFormatter()));
 
         (IDuplexPipe, IDuplexPipe) somePipe = FullDuplexStream.CreatePipePair();
         var ex = await Assert.ThrowsAnyAsync<Exception>(() => clientRpc.InvokeWithCancellationAsync(nameof(Server.TwoWayPipeAsArg), new[] { somePipe.Item2 }, this.TimeoutToken));
@@ -439,7 +439,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         MultiplexingStream.Channel clientRpcChannel = await clientRpcChannelTask;
         MultiplexingStream.Channel serverRpcChannel = await serverRpcChannelTask;
 
-        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverRpcChannel, new JsonMessageFormatter { MultiplexingStream = this.serverMx }), new ServerWithOverloads());
+        this.serverRpc = new JsonRpc(new HeaderDelimitedMessageHandler(serverRpcChannel, new SystemTextJsonFormatter { MultiplexingStream = this.serverMx }), new ServerWithOverloads());
         this.serverRpc.StartListening();
 
         // Send a message, advertising a channel.
@@ -447,7 +447,7 @@ public abstract partial class DuplexPipeMarshalingTests : TestBase, IAsyncLifeti
         // so as to exercise and verify the path where the server sends an error back to the client, after trying to open the channel, but without invoking the server method,
         // and without the client having a chance to close the channel before we can verify that the server did.
         MultiplexingStream.Channel oobChannel = this.clientMx.CreateChannel();
-        var clientHandler = new HeaderDelimitedMessageHandler(clientRpcChannel, new JsonMessageFormatter());
+        var clientHandler = new HeaderDelimitedMessageHandler(clientRpcChannel, new SystemTextJsonFormatter());
         await clientHandler.WriteAsync(
             new StreamJsonRpc.Protocol.JsonRpcRequest
             {

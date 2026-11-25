@@ -5,12 +5,12 @@ using System.Diagnostics;
 using Microsoft.VisualStudio.Threading;
 using Newtonsoft.Json.Linq;
 
-public class JsonRpcCustomRequestIdTests : InteropTestBase
+public abstract class JsonRpcCustomRequestIdTests : InteropTestBase
 {
     private JsonRpcWithStringIds clientRpc;
 
-    public JsonRpcCustomRequestIdTests(ITestOutputHelper logger)
-        : base(logger)
+    protected JsonRpcCustomRequestIdTests(IJsonRpcMessageTextFormatter formatter, ITestOutputHelper logger)
+        : base(formatter, logger)
     {
         this.clientRpc = new JsonRpcWithStringIds(this.messageHandler)
         {

@@ -17,8 +17,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
         this.server = new Server();
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
 
-        this.clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        this.serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2), this.server);
+        this.clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        this.serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()), this.server);
 
         this.serverRpc.TraceSource = new TraceSource("Server", SourceLevels.Information);
         this.clientRpc.TraceSource = new TraceSource("Client", SourceLevels.Information);
@@ -31,10 +31,18 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task DispatchRequestIsPassedCorrectTypeOfRequest()
     {
-        await this.clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
-        Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", this.serverRpc.LastRequestDispatched?.GetType().FullName);
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var server = new Server();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, new JsonMessageFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, new JsonMessageFormatter()), server);
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
+        await clientRpc.InvokeAsync<string>(nameof(Server.TestMethodAsync));
+        Assert.Equal("StreamJsonRpc.JsonMessageFormatter+InboundJsonRpcRequest", serverRpc.LastRequestDispatched?.GetType().FullName);
     }
 
 #pragma warning disable SA1201 // StaticTarget is a test helper used by methods above and below.
@@ -65,8 +73,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task CancellationPreferencePreservesTargetRegistrationOrder()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         serverRpc.AddLocalRpcTarget(new FirstTarget());
         serverRpc.AddLocalRpcTarget(new SecondTarget());
         clientRpc.StartListening();
@@ -81,8 +89,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task CancellationPreferencePreservesInterleavedTargetRegistrationOrder()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         var target = new InterleavedTarget();
         serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithoutCancellation), target, null);
         serverRpc.AddLocalRpcTarget(typeof(IInterleavedOtherTarget), new OtherTarget(), null);
@@ -99,8 +107,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task CancellationPreferenceDoesNotReorderEarlierMatchingTargets()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         var target = new InterleavedTargetWithNonMatchingFirstMethod();
         serverRpc.AddLocalRpcTarget(typeof(IInterleavedTargetWithNonMatchingFirstMethod), target, null);
         serverRpc.AddLocalRpcTarget(typeof(IInterleavedOtherTarget), new OtherTarget(), null);
@@ -117,8 +125,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task DispatchRequestAllowsOmittedOptionalNamedParameterBeforeEquivalentCancellationOverload()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         serverRpc.AddLocalRpcTarget(new OptionalParameterTarget());
         clientRpc.StartListening();
         serverRpc.StartListening();
@@ -132,8 +140,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task DispatchesStaticLocalMethodWithNullTarget()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         serverRpc.AddLocalRpcMethod(typeof(StaticTarget).GetMethod(nameof(StaticTarget.GetValue))!, null, null);
         clientRpc.StartListening();
         serverRpc.StartListening();
@@ -149,7 +157,7 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     {
         UnreachableAssemblyTools.VerifyUnreachableAssembly();
 
-        using var rpc = new JsonRpc(Stream.Null);
+        using var rpc = new JsonRpc(CreateAnyHandler(Stream.Null));
         rpc.AddLocalRpcTarget(new TargetWithUnreachableParameterTypes());
     }
 
@@ -159,8 +167,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task RegisteringSameTargetTypeRetainsDistinctTargets()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2));
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()));
         var firstTarget = new RepeatedTarget("first");
         var secondTarget = new RepeatedTarget("second");
         serverRpc.AddLocalRpcTarget(firstTarget, new JsonRpcTargetOptions { ParameterNameTransform = CommonMethodNameTransforms.Prepend("rpc.") });
@@ -177,18 +185,26 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     }
 
     [Fact]
+    [Obsolete(ObsoleteFormatter)]
     public async Task DelegatedDispatcherCanDispatchInReverseOrderBasedOnTopLevelProperty()
     {
-        this.serverRpc.EnableBuffering = true;
+        var streams = Nerdbank.FullDuplexStream.CreateStreams();
+        var server = new Server();
+        using var clientRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, new JsonMessageFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, new JsonMessageFormatter()), server);
+        serverRpc.EnableBuffering = true;
+        clientRpc.StartListening();
+        serverRpc.StartListening();
+
         var totalCallCount = 10;
         var taskList = new List<Task<int>>();
 
         for (int i = 0; i < totalCallCount; i++)
         {
-            taskList.Add(this.clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync)));
+            taskList.Add(clientRpc.InvokeAsync<int>(nameof(Server.GetCallCountAsync)));
         }
 
-        await this.serverRpc.FlushRequestQueueAsync(totalCallCount);
+        await serverRpc.FlushRequestQueueAsync(totalCallCount);
 
         for (int i = 0; i < totalCallCount; i++)
         {
@@ -201,8 +217,8 @@ public class JsonRpcDelegatedDispatchAndSendTests : TestBase
     public async Task InvokeAsync_UsesOutboundRequestTimeoutWhenSendAsyncTimesOut()
     {
         var streams = Nerdbank.FullDuplexStream.CreateStreams();
-        using var clientRpc = new BlockingSendJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1));
-        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2), this.server);
+        using var clientRpc = new BlockingSendJsonRpc(new HeaderDelimitedMessageHandler(streams.Item1, CreateAnyFormatter()));
+        using var serverRpc = new DelegatedJsonRpc(new HeaderDelimitedMessageHandler(streams.Item2, CreateAnyFormatter()), this.server);
 
         clientRpc.StartListening();
         serverRpc.StartListening();

@@ -7,6 +7,11 @@ internal record InterceptionModel(ProxyModel? Proxy, AttachSignature Signature, 
     internal void WriteInterceptor(SourceWriter writer)
     {
         writer.WriteLine();
+        bool usesObsoleteConstructor = this.Signature is AttachSignature.StaticGenericStream or AttachSignature.StaticGenericStreamStream;
+        if (usesObsoleteConstructor)
+        {
+            writer.WriteLine("#pragma warning disable CS0618 // The intercepted call already reports the obsolete API.");
+        }
 
         foreach (InterceptableLocation location in this.Locations)
         {
@@ -131,6 +136,11 @@ internal record InterceptionModel(ProxyModel? Proxy, AttachSignature Signature, 
                 break;
             default:
                 throw new NotSupportedException();
+        }
+
+        if (usesObsoleteConstructor)
+        {
+            writer.WriteLine("#pragma warning restore CS0618");
         }
     }
 }

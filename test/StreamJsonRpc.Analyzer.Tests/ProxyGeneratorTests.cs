@@ -841,6 +841,39 @@ public class ProxyGeneratorTests
             """);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Interceptor_ObsoleteStreamWarningAppearsOnlyAtCallSite(bool twoStreams)
+    {
+        string arguments = twoStreams ? "stream, stream" : "stream";
+        VerifyCS.Test test = new()
+        {
+            ReportObsoleteWarnings = true,
+            TestBehaviors = TestBehaviors.SkipGeneratedSourcesCheck,
+            TestState =
+            {
+                Sources =
+                {
+                    VerifyCS.SourceFilePrefix + $$"""
+                    [JsonRpcContract]
+                    public partial interface IMyService { }
+
+                    class Test
+                    {
+                        void Foo(System.IO.Stream stream)
+                        {
+                            IMyService service = {|CS0618:JsonRpc.Attach<IMyService>({{arguments}})|};
+                        }
+                    }
+                    """,
+                },
+            },
+        };
+
+        await test.RunAsync(TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public async Task Interceptor_StaticHandler()
     {
