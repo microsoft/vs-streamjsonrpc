@@ -29,6 +29,8 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// </remarks>
     private static readonly long LargeMessageThreshold = new PipeOptions().PauseWriterThreshold;
 
+    private readonly object readerDisposalSyncObject = new object();
+
     private (IJsonRpcMessageBufferManager Message, SequencePosition ConsumedPosition) deserializationReservedBuffer;
 
     /// <summary>
@@ -116,11 +118,14 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// <inheritdoc/>
     void IJsonRpcMessageBufferManager.DeserializationComplete(JsonRpcMessage message)
     {
-        if (message is not null && this.Reader is not null && this.deserializationReservedBuffer.Message == message)
+        lock (this.readerDisposalSyncObject)
         {
-            this.deserializationReservedBuffer.Message.DeserializationComplete(message);
-            this.Reader.AdvanceTo(this.deserializationReservedBuffer.ConsumedPosition);
-            this.deserializationReservedBuffer = default;
+            if (message is not null && this.Reader is not null && this.deserializationReservedBuffer.Message == message)
+            {
+                this.deserializationReservedBuffer.Message.DeserializationComplete(message);
+                this.Reader.AdvanceTo(this.deserializationReservedBuffer.ConsumedPosition);
+                this.deserializationReservedBuffer = default;
+            }
         }
     }
 
@@ -148,8 +153,11 @@ public abstract class PipeMessageHandler : MessageHandlerBase, IJsonRpcMessageBu
     /// <inheritdoc />
     protected override void DisposeReader()
     {
-        this.deserializationReservedBuffer = default;
-        this.Reader?.Complete();
+        lock (this.readerDisposalSyncObject)
+        {
+            this.deserializationReservedBuffer = default;
+            this.Reader?.Complete();
+        }
 
         base.DisposeReader();
     }
